@@ -129,7 +129,7 @@
 
 @layer base {
   :root {
-    --font-sans: "Poppins", "Roboto", "Kantumruy Pro", sans-serif;
+    --font-sans: "Poppins", "Roboto", "Kantumruy Pro", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
     --font-aladin: "Aladin", "Aladin Fallback";
     --font-srisakdi: "Srisakdi", system-ui;
     --font-open-sans: "Open Sans", sans-serif;

@@ -13,6 +13,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
 import { ArrowLeftIcon, ArrowRightIcon, Calendar, Clock, ExternalLink, User } from 'lucide-react';
 import { MarkdownRenderer } from '@/shared/extension/markdown/renderer';
+import { GradientText } from '@/shared/components/ui/gradient-text';
 import { PostCoverImage } from './cover';
 import { ScrollToTopButton } from '@/shared/components/ui/scroll-to-top';
 import Footer from '@/shared/components/layouts/footer';
@@ -182,7 +183,7 @@ async function ProjectContent({ params }: { params: Promise<{ slug: string }> })
             </div>
 
             <div className='flex max-sm:my-2 my-8 flex-col relative order-1'>
-                <h1 className='text-4xl md:text-5xl font-bold leading-tight'> <span className="text-left bg-background  bg-clip-text bg-no-repeat text-transparent bg-linear-to-r  from-sky-500 via-teal-500 to-green-500 [text-shadow:0_0_rgba(0,0,0,0.1)]"> {data.title} </span> </h1>
+                <h1 className='text-4xl md:text-5xl font-bold leading-tight'> <GradientText>{data.title}</GradientText> </h1>
                 <div className='flex gap-2 flex-wrap items-center mt-2 justify-between'>
                     {(data.tags?.length || 0) > 0 && (
                         <div className='flex flex-wrap w-fit justify-start gap-1 bg-background'>
