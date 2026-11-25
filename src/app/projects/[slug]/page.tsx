@@ -6,7 +6,6 @@ import { Suspense } from 'react';
 import { cacheLife } from 'next/cache';
 import { safeSegment, upstream } from '@/app/api/lib/client';
 
-import { NavigationBar } from '@/shared/components/layouts/navbar';
 import { GridPattern } from '@/shared/components/background/grid-pattern';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
@@ -102,8 +101,6 @@ const getProjectDetail = async (slug: string): Promise<IProjectDetailResponse> =
 export default async function ProjectDetail(props: Params) {
     return (
         <>
-            <NavigationBar className='fixed' />
-
             <div className="max-sm:px-3">
                 <div className='absolute inset-y-0 left-0 right-0 pointer-events-none opacity-60' aria-hidden='true'>
                     <GridPattern

@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { Metadata } from 'next';
 
-import { NavigationBar } from '@/shared/components/layouts/navbar';
 import { GridPattern } from '@/shared/components/background/grid-pattern';
 import { Button } from '@/shared/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
@@ -98,7 +97,6 @@ export default function BlogDetail(props: Params) {
     return (
         <Suspense fallback={
             <div className="w-full min-h-screen flex flex-col">
-                <NavigationBar className='fixed' />
                 <div className="flex-1 flex justify-center items-center py-32">
                     <Spinner variant="bars" />
                 </div>
@@ -151,8 +149,6 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
         return (
             <>
                 <GridPattern width={30} height={30} x={-1} y={-1} className={'mask-[linear-gradient(to_bottom_right,white,transparent,transparent)] '} />
-                <NavigationBar className='sticky' />
-
                 <div className='container flex min-h-svh flex-col justify-center items-center mx-auto py-16 text-center'>
                     <h1 className='text-4xl font-bold mb-4'>Article Not Found</h1>
                     <p className='text-foreground/50 mb-8'> The article you are looking for does not exist. </p>
@@ -174,8 +170,6 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
 
     return (
         <>
-            <NavigationBar className='fixed' />
-
             <div className="max-sm:px-3">
                 <div className='absolute inset-y-0 left-0 right-0 pointer-events-none opacity-60' aria-hidden='true'>
                     <GridPattern
