@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema, type Options as SanitizeSchema } from 'rehype-sanitize';
 import rehypeHighlight from 'rehype-highlight';
 import { cn } from '@/shared/libs/utils';
 import { MarkdownCodeBlock } from './code-block';
@@ -15,6 +16,37 @@ interface MarkdownRendererProps {
 }
 
 const DEFAULT_HEADING_ID = 'heading';
+
+/*
+ * Article HTML comes from the API and can be written by non-admin authors
+ * and contributors, so raw HTML is sanitized before rendering. The schema is
+ * GitHub's default (no scripts, event handlers, iframes, styles or
+ * `javascript:` URLs) plus what our markdown extensions need: class names for
+ * layout and the gallery's `data-*` options.
+ */
+const SANITIZE_SCHEMA: SanitizeSchema = {
+    ...defaultSchema,
+    attributes: {
+        ...defaultSchema.attributes,
+        div: [
+            ...(defaultSchema.attributes?.div ?? []),
+            'className',
+            'dataColumns',
+            'dataCaptions',
+            'dataLayout',
+        ],
+        span: [...(defaultSchema.attributes?.span ?? []), 'className'],
+        p: [...(defaultSchema.attributes?.p ?? []), 'className'],
+        figure: ['className'],
+        figcaption: ['className'],
+        img: [...(defaultSchema.attributes?.img ?? []), 'className'],
+    },
+    tagNames: [...(defaultSchema.tagNames ?? []), 'figure', 'figcaption'],
+    protocols: {
+        ...defaultSchema.protocols,
+        src: [...(defaultSchema.protocols?.src ?? []), 'data'],
+    },
+};
 const CODE_FONT_FAMILY = '"Fira Code", "JetBrains Mono", "Source Code Pro", "Cascadia Code", monospace';
 
 function extractText(node: React.ReactNode): string {
@@ -102,9 +134,9 @@ function createMarkdownComponents(): Components {
         h4: withHeadingId('h4'),
         h5: withHeadingId('h5'),
         h6: withHeadingId('h6'),
-        img({ src, alt, ...props }) {
+        img({ src, alt, className, ...props }) {
             const safeSrc = typeof src === 'string' ? src : undefined;
-            return <MarkdownImage src={safeSrc} alt={alt} {...props} />;
+            return <MarkdownImage src={safeSrc} alt={alt} className={className} {...props} />;
         },
         div({ className, children, ...props }) {
             const classValue = typeof className === 'string' ? className : '';
@@ -166,7 +198,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
         >
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw, rehypeHighlight]}
+                rehypePlugins={[rehypeRaw, [rehypeSanitize, SANITIZE_SCHEMA], rehypeHighlight]}
                 components={markdownComponents}
             >
                 {content}

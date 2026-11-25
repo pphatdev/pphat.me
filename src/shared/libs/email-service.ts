@@ -4,6 +4,16 @@
  */
 import { EmailData } from '@/shared/interfaces/email';
 
+/** Escape user input before interpolating it into the HTML email body. */
+function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 /**
  * Send a contact form email using Resend API
  * This function runs on the server-side only (in API routes or Server Actions)
@@ -28,19 +38,27 @@ async function sendWithResend(data: EmailData): Promise<boolean> {
             return false;
         }
 
+        // All user-supplied values are escaped: the sender controls them.
+        const safe = {
+            name: escapeHtml(data.name),
+            from: escapeHtml(data.from),
+            subject: escapeHtml(data.subject),
+            message: escapeHtml(data.message).replace(/\r?\n/g, '<br/>'),
+        };
+
         // Format the HTML content for better presentation
         const htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
                 <h2 style="color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px;">New Contact Form Submission</h2>
 
                 <div style="margin: 20px 0;">
-                <p><strong>From:</strong> ${data.name} (${data.from})</p>
-                <p><strong>Subject:</strong> ${data.subject}</p>
+                <p><strong>From:</strong> ${safe.name} (${safe.from})</p>
+                <p><strong>Subject:</strong> ${safe.subject}</p>
                 </div>
 
                 <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
                 <h3 style="margin-top: 0; color: #555;">Message:</h3>
-                <div style="line-height: 1.5;">${data.message.replace(/\n/g, '<br/>')}</div>
+                <div style="line-height: 1.5;">${safe.message}</div>
                 </div>
 
                 <div style="font-size: 12px; color: #777; margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">
@@ -66,13 +84,10 @@ async function sendWithResend(data: EmailData): Promise<boolean> {
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Resend API error:', errorText);
+            console.error('Resend API error: HTTP', response.status);
             return false;
         }
 
-        const info = (await response.json()) as any;
-        console.log('Email sent via Resend:', info.id);
         return true;
     } catch (error) {
         console.error('Email error:', error);

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, ChevronRight, RotateCw, Download } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { InGalleryContext } from './gallery-context';
 
 interface MarkdownGalleryProps extends React.HTMLAttributes<HTMLDivElement> {
     children?: React.ReactNode;
@@ -216,10 +217,9 @@ export function MarkdownGallery({
             const cards = Array.from(container.querySelectorAll('figure')) as HTMLElement[];
             if (cards.length === 0) return;
 
-            const maxScroll = Math.max(container.scrollWidth - container.clientWidth, 0);
-            const nextProgress = maxScroll === 0
+            const nextProgress = container.scrollWidth === 0
                 ? 100
-                : Math.min((container.scrollLeft / maxScroll) * 100, 100);
+                : Math.min(((container.scrollLeft + container.clientWidth) / container.scrollWidth) * 100, 100);
             setScrollProgress((prev) => (Math.abs(prev - nextProgress) < 0.1 ? prev : nextProgress));
 
             const containerRect = container.getBoundingClientRect();
@@ -283,39 +283,36 @@ export function MarkdownGallery({
     return (
         <>
             <div className="relative">
-                <div
-                    className={cn(
-                        'mb-3 flex items-center justify-end gap-2',
-                        isSnapLayout && items.length > 1 ? 'opacity-100' : 'pointer-events-none opacity-0'
-                    )}
-                >
-                    <button
-                        type="button"
-                        onClick={() => handleSnapScroll('prev')}
-                        className="inline-flex items-center gap-1 rounded-full border border-foreground/10 bg-background/70 px-3 py-1.5 text-sm hover:bg-muted/80 transition-colors"
-                        aria-label="Scroll gallery previous"
-                        disabled={!isSnapLayout || items.length <= 1}
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                        Prev
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleSnapScroll('next')}
-                        className="inline-flex items-center gap-1 rounded-full border border-foreground/10 bg-background/70 px-3 py-1.5 text-sm hover:bg-muted/80 transition-colors"
-                        aria-label="Scroll gallery next"
-                        disabled={!isSnapLayout || items.length <= 1}
-                    >
-                        Next
-                        <ChevronRight className="h-4 w-4" />
-                    </button>
-                </div>
+                {isSnapLayout && items.length > 1 && (
+                    <div className="mb-3 flex items-center justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => handleSnapScroll('prev')}
+                            className="inline-flex items-center gap-1 rounded-full border border-foreground/10 bg-background/70 px-3 py-1.5 text-sm transition-colors hover:bg-muted/80 disabled:pointer-events-none disabled:opacity-40"
+                            aria-label="Scroll gallery previous"
+                            disabled={snapIndex === 0}
+                        >
+                            <ChevronLeft className="size-4" />
+                            Prev
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleSnapScroll('next')}
+                            className="inline-flex items-center gap-1 rounded-full border border-foreground/10 bg-background/70 px-3 py-1.5 text-sm transition-colors hover:bg-muted/80 disabled:pointer-events-none disabled:opacity-40"
+                            aria-label="Scroll gallery next"
+                            disabled={snapProgress >= 99.5}
+                        >
+                            Next
+                            <ChevronRight className="size-4" />
+                        </button>
+                    </div>
+                )}
 
                 <div
                     ref={snapScrollerRef}
                     className={cn(
                         isSnapLayout
-                            ? 'not-prose mt-8 flex flex-row gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none'
+                            ? 'not-prose flex flex-row gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none'
                             : cn('not-prose my-8 columns-2 gap-x-3 md:gap-x-4', getColumnsClass(dataColumns)),
                         className
                     )}
@@ -329,10 +326,10 @@ export function MarkdownGallery({
                             <motion.figure
                                 key={`gallery-item-${index}`}
                                 className={cn(
-                                    'group bg-background/40 border border-foreground/10 overflow-hidden rounded-2xl p-1 cursor-pointer hover:border-primary/40 transition-colors',
+                                    'group m-0 cursor-pointer overflow-hidden rounded-2xl border border-foreground/10 bg-background/40 p-1 transition-colors hover:border-primary/40',
                                     isSnapLayout
-                                        ? 'snap-start flex-none w-56 sm:w-64 md:w-72 [&_img]:w-full [&_img]:h-44 [&_img]:object-cover [&_img]:rounded-xl'
-                                        : 'mb-3 md:mb-4 break-inside-avoid [&_img]:h-auto [&_img]:w-full [&_img]:rounded-xl'
+                                        ? 'flex-none snap-start w-56 sm:w-64 md:w-72 [&_img]:h-44 [&_img]:object-cover'
+                                        : 'mb-3 break-inside-avoid md:mb-4'
                                 )}
                                 initial={isSnapLayout ? { opacity: 0, x: 40 } : { opacity: 0, y: 50 }}
                                 whileInView={isSnapLayout ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 }}
@@ -344,13 +341,13 @@ export function MarkdownGallery({
                                 }}
                                 onClick={() => handleImageClick(item, index)}
                             >
-                                <div className="relative overflow-hidden rounded-3xl">
+                                <div className={cn('relative overflow-hidden rounded-xl', isSnapLayout ? 'h-44' : 'min-h-24')}>
                                     {!loadedMap[index] && (
-                                        <div className={cn('absolute inset-0 animate-pulse rounded-xl bg-muted/60', isSnapLayout ? 'h-44' : 'min-h-[120px]')} />
+                                        <div className="absolute inset-0 animate-pulse bg-muted/60" />
                                     )}
                                     <div
                                         className={cn(
-                                            'transition-opacity duration-500',
+                                            'transition-[opacity,transform] duration-500 group-hover:scale-[1.03]',
                                             loadedMap[index] ? 'opacity-100' : 'opacity-0'
                                         )}
                                         ref={(el) => {
@@ -360,11 +357,11 @@ export function MarkdownGallery({
                                         }}
                                         onLoad={() => markLoaded(index)}
                                     >
-                                        {item}
+                                        <InGalleryContext.Provider value>{item}</InGalleryContext.Provider>
                                     </div>
                                 </div>
                                 {showCaptions && caption ? (
-                                    <figcaption className="text-muted-foreground px-3 py-2 text-sm">
+                                    <figcaption className="text-muted-foreground line-clamp-2 px-2 pt-2 pb-1 text-sm">
                                         {caption}
                                     </figcaption>
                                 ) : null}
@@ -373,18 +370,18 @@ export function MarkdownGallery({
                     })}
                 </div>
 
-                <div
-                    className={cn(
-                        '-mt-1 flex items-center justify-center',
-                        isSnapLayout && items.length > 1 ? 'opacity-100' : 'pointer-events-none opacity-0'
-                    )}
-                >
-                    <div className="w-full rounded-full border border-foreground/10 bg-background/70 p-1" aria-label="Gallery progress">
-                        <div className="h-2 rounded-full bg-muted/80">
-                            <div className="h-2 rounded-full bg-primary transition-all duration-300" style={{ width: `${snapProgress}%` }} />
-                        </div>
+                {isSnapLayout && items.length > 1 && (
+                    <div
+                        className="mt-1 h-1 w-full overflow-hidden rounded-full bg-foreground/10"
+                        role="progressbar"
+                        aria-label="Gallery scroll position"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round(snapProgress)}
+                    >
+                        <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${snapProgress}%` }} />
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Lightbox Modal */}

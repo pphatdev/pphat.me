@@ -160,7 +160,8 @@ async function main() {
     console.log(`   api:   ${API_BASE}`);
 
     const [articles, projects] = await Promise.all([
-        fetchList('/v1/api/articles'),
+        // Explicit filter: an admin-scoped key would otherwise list drafts/private.
+        fetchList('/v1/api/articles?status=public'),
         fetchList('/v1/api/projects'),
     ]);
 

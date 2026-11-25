@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useInGallery } from './gallery-context';
 
 interface MarkdownImageProps {
     src?: string;
@@ -15,6 +16,7 @@ const DEFAULT_FALLBACK_SRC = '/assets/placeholder/placeholder.svg';
 
 export function MarkdownImage({ src, alt, className, fallbackSrc = DEFAULT_FALLBACK_SRC }: MarkdownImageProps) {
     const pathname = usePathname();
+    const inGallery = useInGallery();
     const [currentSrc, setCurrentSrc] = React.useState(src || fallbackSrc);
     const assetApiPath = React.useMemo(() => {
         const [section] = pathname.split('/').filter(Boolean);
@@ -70,7 +72,14 @@ export function MarkdownImage({ src, alt, className, fallbackSrc = DEFAULT_FALLB
             onError={handleError}
             loading="lazy"
             unoptimized
-            className={['w-full sm:p-2 border border-foreground/10 mt-0! rounded-3xl! h-auto', className].filter(Boolean).join(' ')}
+            className={[
+                inGallery
+                    ? 'm-0! block w-full h-auto'
+                    // Cap tall (portrait) photos at 70% of the viewport; width follows the
+                    // aspect ratio and the frame hugs the image, centred in the column.
+                    : 'mx-auto block h-auto max-h-[70vh] w-auto max-w-full object-contain sm:p-2 border border-foreground/10 mt-0! rounded-3xl!',
+                className,
+            ].filter(Boolean).join(' ')}
         />
     );
 }

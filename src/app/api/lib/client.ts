@@ -1,49 +1,111 @@
 /**
  * Thin wrapper around `fetch` that targets the upstream pphat API.
  *
- * Base URL: process.env.NEXT_PUBLIC_API  (falls back to ${process.env.NEXT_PUBLIC_API})
+ * Base URL: process.env.NEXT_PUBLIC_APP_API (falls back to the workers.dev host).
+ *
+ * SECURITY: every request carries `NEXT_PPHAT_API_KEY`, which the API treats
+ * as the user who issued it. This client is therefore read-only (GET/HEAD)
+ * and refuses any path that does not stay under `/v1/api/` after URL
+ * normalisation, so a crafted slug such as `../users` cannot reach other
+ * endpoints with the server's credentials. Build dynamic paths with
+ * `safeSegment()`.
  *
  * Usage:
- *   const res = await upstream('/v1/api/auth/email/login', { method: 'POST', body })
+ *   const slug = safeSegment(params.slug);
+ *   if (!slug) return notFound();
+ *   const res = await upstream(`/v1/api/articles/${slug}`);
  */
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_API?.replace(/\/$/, '') ?? 'https://blog-api.pphatdev.workers.dev';
+const API_PREFIX = '/v1/api/';
+const SAFE_METHODS = new Set(['GET', 'HEAD']);
+const MAX_SEGMENT_LENGTH = 200;
 
-export interface UpstreamOptions extends Omit<RequestInit, 'body'> {
-    body?: object | null;
+export interface UpstreamOptions extends Omit<RequestInit, 'body' | 'method'> {
+    method?: 'GET' | 'HEAD';
     next?: { revalidate?: number | false; tags?: string[] };
 }
 
+export class UpstreamPathError extends Error {
+    constructor(path: string) {
+        super(`Refusing upstream request to unsafe path: ${path}`);
+        this.name = 'UpstreamPathError';
+    }
+}
+
 /**
- * Execute a request against the upstream API and return the raw `Response`.
- * The caller is responsible for reading / forwarding the response body.
+ * Encode a single, already-decoded URL path segment (e.g. a route `slug`
+ * param). Returns `null` for values that could escape the intended path:
+ * empty, dot segments, or anything containing a slash/backslash/control char.
+ */
+export function safeSegment(value: string | undefined | null): string | null {
+    if (typeof value !== 'string') return null;
+    if (value.length === 0 || value.length > MAX_SEGMENT_LENGTH) return null;
+    if (value === '.' || value === '..') return null;
+    if (/[/\\\u0000-\u001f\u007f]/.test(value)) return null;
+    return encodeURIComponent(value);
+}
+
+/**
+ * Copy only the allowed query parameters (first value each) from an incoming
+ * request, so callers cannot smuggle filters such as `status=draft`.
+ */
+export function pickQuery(source: URLSearchParams, allowed: readonly string[]): URLSearchParams {
+    const out = new URLSearchParams();
+    for (const key of allowed) {
+        const value = source.get(key);
+        if (value !== null && value.length <= MAX_SEGMENT_LENGTH) out.set(key, value);
+    }
+    return out;
+}
+
+function resolveUpstreamUrl(path: string): URL {
+    const base = new URL(BASE_URL);
+    const url = new URL(`${BASE_URL}${path}`);
+    const rawPath = path.split(/[?#]/, 1)[0];
+    // `new URL` collapses dot segments (including %2e forms); if the resolved
+    // pathname differs from what we asked for, the path tried to traverse.
+    if (
+        url.origin !== base.origin ||
+        !rawPath.startsWith(API_PREFIX) ||
+        url.pathname !== rawPath
+    ) {
+        throw new UpstreamPathError(path);
+    }
+    return url;
+}
+
+/**
+ * Execute a read-only request against the upstream API and return the raw
+ * `Response`. The caller is responsible for reading / forwarding the body.
  */
 export async function upstream(
     path: string,
-    { body, headers: extraHeaders, ...rest }: UpstreamOptions = {}
+    { headers: extraHeaders, method = 'GET', ...rest }: UpstreamOptions = {}
 ): Promise<Response> {
-    const url = `${BASE_URL}${path}`;
+    if (!SAFE_METHODS.has(method)) {
+        throw new Error(`upstream() is read-only; got ${method}`);
+    }
+    const url = resolveUpstreamUrl(path);
 
     if (!process.env.NEXT_PPHAT_API_KEY) {
         console.warn('⚠️ NEXT_PPHAT_API_KEY is missing from environment variables! Did you forget to restart your dev server?');
     }
 
     const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.NEXT_PPHAT_API_KEY ?? '',
+        Accept: 'application/json',
         ...(extraHeaders as Record<string, string>),
+        // Set last so a caller cannot override or drop it by accident.
+        'x-api-key': process.env.NEXT_PPHAT_API_KEY ?? '',
     };
 
-    return fetch(url, {
-        ...rest,
-        headers,
-        body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
-    });
+    return fetch(url, { ...rest, method, headers });
 }
 
 /**
  * Build a `Response` that mirrors an upstream response body + status.
- * Strips hop-by-hop headers that must not be forwarded.
+ * Only the content type is forwarded; upstream headers (cookies, CORS,
+ * hop-by-hop) are dropped.
  */
 export async function mirrorResponse(upstreamRes: Response): Promise<Response> {
     const body = await upstreamRes.text();
@@ -53,8 +115,14 @@ export async function mirrorResponse(upstreamRes: Response): Promise<Response> {
         status: upstreamRes.status,
         headers: {
             'Content-Type': contentType,
+            'X-Content-Type-Options': 'nosniff',
         },
     });
+}
+
+/** JSON 404 used when a route param fails `safeSegment()`. */
+export function notFoundResponse(): Response {
+    return Response.json({ error: 'Not Found' }, { status: 404 });
 }
 
 /**

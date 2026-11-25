@@ -4,15 +4,15 @@ import { formatDistanceToNow } from 'date-fns';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { cacheLife } from 'next/cache';
-import { upstream } from '@/app/api/lib/client';
+import { safeSegment, upstream } from '@/app/api/lib/client';
 
-import { NavigationBar } from '@/shared/components/layouts/navbar';
 import { GridPattern } from '@/shared/components/background/grid-pattern';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
 import { ArrowLeftIcon, ArrowRightIcon, Calendar, Clock, ExternalLink, User } from 'lucide-react';
 import { MarkdownRenderer } from '@/shared/extension/markdown/renderer';
+import { GradientText } from '@/shared/components/ui/gradient-text';
 import { PostCoverImage } from './cover';
 import { ScrollToTopButton } from '@/shared/components/ui/scroll-to-top';
 import Footer from '@/shared/components/layouts/footer';
@@ -74,8 +74,10 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
 
 
 const getProjectDetail = async (slug: string): Promise<IProjectDetailResponse> => {
+    const segment = safeSegment(slug);
+    if (!segment) throw new Error('Invalid project slug');
     try {
-        const response = await upstream(`/v1/api/projects/${slug}`, {
+        const response = await upstream(`/v1/api/projects/${segment}`, {
             method: 'GET',
         });
 
@@ -99,8 +101,6 @@ const getProjectDetail = async (slug: string): Promise<IProjectDetailResponse> =
 export default async function ProjectDetail(props: Params) {
     return (
         <>
-            <NavigationBar className='fixed' />
-
             <div className="max-sm:px-3">
                 <div className='absolute inset-y-0 left-0 right-0 pointer-events-none opacity-60' aria-hidden='true'>
                     <GridPattern
@@ -180,7 +180,7 @@ async function ProjectContent({ params }: { params: Promise<{ slug: string }> })
             </div>
 
             <div className='flex max-sm:my-2 my-8 flex-col relative order-1'>
-                <h1 className='text-4xl md:text-5xl font-bold leading-tight'> <span className="text-left bg-background  bg-clip-text bg-no-repeat text-transparent bg-linear-to-r  from-sky-500 via-teal-500 to-green-500 [text-shadow:0_0_rgba(0,0,0,0.1)]"> {data.title} </span> </h1>
+                <h1 className='text-4xl md:text-5xl font-bold leading-tight'> <GradientText>{data.title}</GradientText> </h1>
                 <div className='flex gap-2 flex-wrap items-center mt-2 justify-between'>
                     {(data.tags?.length || 0) > 0 && (
                         <div className='flex flex-wrap w-fit justify-start gap-1 bg-background'>

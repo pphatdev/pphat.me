@@ -1,20 +1,17 @@
 import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+import { securityHeaders } from "./security-headers.mjs";
 
-const API_URL = process.env.NEXT_PUBLIC_APP_API;
+const isDev = process.env.NODE_ENV !== 'production';
 
 const nextConfig: NextConfig = {
     allowedDevOrigins: ['127.0.0.1', '172.26.17.136'],
-    async rewrites() {
-        // Only register the proxy rewrite when the API URL is configured.
-        // Without this guard Next.js throws "destination does not start with /"
-        // when the env var is empty or undefined.
-        if (!API_URL) return [];
-
+    poweredByHeader: false,
+    async headers() {
         return [
             {
-                source: '/api/proxy/:path*',
-                destination: `${API_URL}/:path*`,
+                source: '/:path*',
+                headers: securityHeaders({ dev: isDev }),
             },
         ];
     },

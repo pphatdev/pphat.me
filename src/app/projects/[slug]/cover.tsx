@@ -22,7 +22,7 @@ export function PostCoverImage({ src, alt, className }: PostCoverImageProps) {
     }, [src]);
 
     return (
-        <div className="relative">
+        <div className="relative h-full">
             {/* Skeleton shimmer shown while loading */}
             <div
                 className={cn(
