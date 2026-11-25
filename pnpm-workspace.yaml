@@ -2,3 +2,15 @@ allowBuilds:
   '@tsparticles/engine': true
   esbuild: true
   workerd: true
+
+# Keep in sync with "overrides" in package.json (npm / package-lock.json).
+# Parents pin vulnerable versions; these force the patched ones.
+overrides:
+  # GHSA-3g3m-2fjr-6pw4 (glob), GHSA-g3hv-75wg-m249 (minimatch <11.0.1 via glob 13).
+  # OpenNext only calls glob()/globSync(); drop once it depends on glob 14.
+  '@opennextjs/cloudflare>glob': ^14.0.6
+  # GHSA-rj75-hqrm-r3gf: typography pins postcss-selector-parser 6.0.10.
+  '@tailwindcss/typography>postcss-selector-parser': ^6.1.6
+  # GHSA-6j4f-fj2g-mc7p and related: brace-expansion <1.1.21 via minimatch@3.
+  'brace-expansion@<1.1.22': ^1.1.22
+  postcss: ^8.5.10
