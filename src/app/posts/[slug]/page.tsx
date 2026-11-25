@@ -64,11 +64,13 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
     };
 }
 
-import { upstream } from '@/app/api/lib/client';
+import { safeSegment, upstream } from '@/app/api/lib/client';
 
 const getArticleDetail = async (slug: string): Promise<IArticleDetailResponse | null> => {
+    const segment = safeSegment(slug);
+    if (!segment) return null;
     try {
-        const response = await upstream(`/v1/api/articles/${slug}`, {
+        const response = await upstream(`/v1/api/articles/${segment}`, {
             method: 'GET',
         });
 
@@ -77,8 +79,10 @@ const getArticleDetail = async (slug: string): Promise<IArticleDetailResponse | 
             return null;
         }
 
-        const data = await response.json();
-        return data as IArticleDetailResponse;
+        const data = (await response.json()) as IArticleDetailResponse;
+        // The upstream detail endpoint does not filter drafts; never render them.
+        if (!data?.data?.published) return null;
+        return data;
     }
     catch (error) {
         console.error(`Error fetching article with slug ${slug}:`, error);

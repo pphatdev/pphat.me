@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { cacheLife } from 'next/cache';
-import { upstream } from '@/app/api/lib/client';
+import { safeSegment, upstream } from '@/app/api/lib/client';
 
 import { NavigationBar } from '@/shared/components/layouts/navbar';
 import { GridPattern } from '@/shared/components/background/grid-pattern';
@@ -74,8 +74,10 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
 
 
 const getProjectDetail = async (slug: string): Promise<IProjectDetailResponse> => {
+    const segment = safeSegment(slug);
+    if (!segment) throw new Error('Invalid project slug');
     try {
-        const response = await upstream(`/v1/api/projects/${slug}`, {
+        const response = await upstream(`/v1/api/projects/${segment}`, {
             method: 'GET',
         });
 

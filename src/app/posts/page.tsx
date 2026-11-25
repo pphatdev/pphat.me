@@ -23,6 +23,8 @@ async function BlogsContent({ searchParams }: Props) {
     const query = new URLSearchParams();
     if (currentPage > 1) query.append('page', currentPage.toString());
     query.append('limit', '10');
+    // Never rely on the API key's role for visibility: only public articles.
+    query.append('status', 'public');
     if (initialSearch) query.append('search', initialSearch);
 
     let articles: IArticleListResponse | null = null;

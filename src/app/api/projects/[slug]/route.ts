@@ -1,71 +1,20 @@
 /**
  * GET /api/projects/[slug]
- * PATCH /api/projects/[slug]
- * DELETE /api/projects/[slug]
  *
- * Proxies the requests to the upstream pphat API.
+ * Read-only proxy to the upstream pphat API. Writes happen in the admin app,
+ * never through this site.
  */
 
-import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
-import { upstream, mirrorResponse } from '../../lib/client';
-
+import { upstream, mirrorResponse, notFoundResponse, safeSegment } from '../../lib/client';
 
 export async function GET(
     _request: NextRequest,
     { params }: { params: Promise<{ slug: string }> }
 ): Promise<Response> {
-    const { slug } = await params;
-    const upstreamRes = await upstream(`/v1/api/projects/${slug}`, {
-        method: 'GET',
-    });
+    const slug = safeSegment((await params).slug);
+    if (!slug) return notFoundResponse();
 
-    return mirrorResponse(upstreamRes);
-}
-
-export async function PATCH(
-    request: NextRequest,
-    { params }: { params: Promise<{ slug: string }> }
-): Promise<Response> {
-    const { slug } = await params;
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
-
-    if (!token) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = (await request.json()) as Record<string, unknown>;
-
-    const upstreamRes = await upstream(`/v1/api/projects/${slug}`, {
-        method: 'PATCH',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
-        body,
-    });
-
-    return mirrorResponse(upstreamRes);
-}
-
-export async function DELETE(
-    _request: NextRequest,
-    { params }: { params: Promise<{ slug: string }> }
-): Promise<Response> {
-    const { slug } = await params;
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
-
-    if (!token) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const upstreamRes = await upstream(`/v1/api/projects/${slug}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
-    });
-
+    const upstreamRes = await upstream(`/v1/api/projects/${slug}`);
     return mirrorResponse(upstreamRes);
 }
