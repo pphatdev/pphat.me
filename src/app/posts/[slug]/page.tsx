@@ -6,15 +6,16 @@ import { Metadata } from 'next';
 import { NavigationBar } from '@/shared/components/layouts/navbar';
 import { GridPattern } from '@/shared/components/background/grid-pattern';
 import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
-import { ArrowLeftIcon, ArrowRightIcon, Calendar, Clock, User, Eye } from 'lucide-react';
+import { ArrowLeftIcon, ArrowRightIcon, BookOpen, Calendar, Clock, ExternalLink, User } from 'lucide-react';
+import { ViewCounter } from './view-counter';
 import { MarkdownRenderer } from '@/shared/extension/markdown/renderer';
 import { PostCoverImage } from '../../projects/[slug]/cover'; // Reusing cover component
 import { ScrollToTopButton } from '@/shared/components/ui/scroll-to-top';
 import Footer from '@/shared/components/layouts/footer';
 import { IArticleDetailResponse } from '@/shared/interfaces/articles';
 import { appName } from '@/shared/data';
+import { ADMIN_URL } from '@/shared/libs/constants';
 import { getOrigin } from '@/shared/seo/origin';
 
 interface Params {
@@ -108,6 +109,40 @@ export default function BlogDetail(props: Params) {
     );
 }
 
+/** Neighbour links arrive as absolute URLs (`…/articles/<slug>`); keep only the slug. */
+function slugFromNavigation(value: string | null | undefined): string | null {
+    if (!value) return null;
+    try {
+        const last = new URL(value).pathname.split('/').filter(Boolean).pop();
+        return last ? decodeURIComponent(last) : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Where an author's name/avatar should link: their own `url` when it is an
+ * http(s) link, otherwise their GitHub profile derived from a
+ * `https://github.com/<user>.png` avatar. Null when neither is available.
+ */
+function authorHref(author: { url?: string; profile?: string }): string | null {
+    const toHttpUrl = (value?: string) => {
+        try {
+            const url = new URL(value ?? '');
+            return url.protocol === 'https:' || url.protocol === 'http:' ? url : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const own = toHttpUrl(author.url);
+    if (own) return own.toString();
+
+    const avatar = toHttpUrl(author.profile);
+    const githubUser = avatar?.hostname === 'github.com' ? /^\/([A-Za-z0-9-]+)\.png$/.exec(avatar.pathname)?.[1] : undefined;
+    return githubUser ? `https://github.com/${githubUser}` : null;
+}
+
 async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
     const resolvedParams = await params;
     const articleRes = await getArticleDetail(resolvedParams.slug);
@@ -133,6 +168,9 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
     }
 
     const data = articleRes.data;
+    const prevSlug = slugFromNavigation(articleRes.navigation?.prev);
+    const nextSlug = slugFromNavigation(articleRes.navigation?.next);
+    const createdAt = data.createdAt ? new Date(data.createdAt) : null;
 
     return (
         <>
@@ -149,126 +187,135 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
                     />
                 </div>
 
-                <article className='max-w-5xl sm:px-4 relative mx-auto max-xs:pt-0 sm:mt-16 max-sm:pb-0 py-8'>
+                <article className='relative mx-auto max-w-5xl pt-24 pb-8 sm:px-4 sm:pt-28'>
                     {data.thumbnail && (
-                        <div className='relative w-full sm:p-2 ring-1 rounded-3xl ring-foreground/10 h-full max-xs:max-h-96 md:h-116 max-xs:rounded-none max-xs:rounded-b-4xl overflow-hidden'>
-                            <PostCoverImage src={data.thumbnail} alt={data.title} />
+                        <div className='relative h-64 w-full overflow-hidden rounded-2xl bg-muted sm:h-96 md:h-116'>
+                            <PostCoverImage src={data.thumbnail} alt={data.title} className='aspect-auto object-center rounded-none ring-0 max-sm:rounded-none' />
                         </div>
                     )}
 
-                    <div className='flex items-center justify-between gap-2 mt-7 py-4 order-2'>
-                        <Button asChild variant="outline" className='h-9'>
-                            <Link href='/posts'>
-                                <ArrowLeftIcon className='w-4 h-4' /> Back
-                            </Link>
-                        </Button>
+                    <div className='mt-8 flex items-center justify-between gap-2 sm:mt-12'>
+                        <Link
+                            href='/posts'
+                            className='inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/10'
+                        >
+                            <ArrowLeftIcon className='size-4' /> Back to Blogs
+                        </Link>
+                        <a
+                            href={`${ADMIN_URL}/articles/${encodeURIComponent(data.slug)}`}
+                            target='_blank'
+                            rel='noopener noreferrer nofollow'
+                            className='inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/10'
+                        >
+                            <ExternalLink className='size-4' /> Edit Post
+                        </a>
                     </div>
 
-                    <div className='flex max-sm:my-2 my-8 flex-col relative order-1'>
-                        <h1 className='text-4xl md:text-5xl font-bold leading-tight'>
-                            <span className="text-left bg-background bg-clip-text bg-no-repeat text-transparent bg-linear-to-r from-sky-500 via-teal-500 to-green-500 [text-shadow:0_0_rgba(0,0,0,0.1)]">
-                                {data.title}
-                            </span>
+                    <header className='mt-6'>
+                        <h1 className='text-4xl font-bold leading-tight tracking-tight text-foreground md:text-5xl'>
+                            {data.title}
                         </h1>
-                        <div className='flex gap-2 flex-wrap w-full items-center mt-2 justify-between'>
-                            {(data.tags?.length || 0) > 0 && (
-                                <div className='flex flex-wrap w-full justify-start gap-1 bg-background'>
-                                    {(data.tags ?? []).map((tag) => (
-                                        <Badge key={tag.id} variant='outline' className='py-1 rounded-md tracking-widest leading-tight font-open-sans'> @{tag.tag} </Badge>
-                                    ))}
-                                </div>
+
+                        {(data.tags?.length ?? 0) > 0 && (
+                            <ul className='mt-4 flex flex-wrap gap-2' aria-label='Tags'>
+                                {(data.tags ?? []).map((tag) => (
+                                    <li key={tag.id}>
+                                        <Link
+                                            href={`/posts?tag=${encodeURIComponent(tag.tag)}`}
+                                            className='inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground/80 transition-colors hover:bg-primary/10 hover:text-primary'
+                                        >
+                                            {tag.tag}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+
+                        <div className='mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-foreground/10 pb-8 text-sm text-foreground/60'>
+                            {(data.authors?.length ?? 0) > 0 && (
+                                <ul className='flex flex-wrap items-center gap-x-5 gap-y-2' aria-label='Authors'>
+                                    {(data.authors ?? []).map((author, index) => {
+                                        const href = authorHref(author);
+                                        const content = (
+                                            <>
+                                                <Avatar className='size-8 ring-1 ring-foreground/10'>
+                                                    <AvatarImage src={author.profile || undefined} alt={author.name} referrerPolicy="no-referrer" />
+                                                    <AvatarFallback>
+                                                        <User className='size-4' />
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <span className='font-medium text-foreground transition-colors group-hover:text-primary'>{author.name}</span>
+                                            </>
+                                        );
+                                        return (
+                                            <li key={index}>
+                                                {href ? (
+                                                    <a
+                                                        href={href}
+                                                        target='_blank'
+                                                        rel='noopener noreferrer'
+                                                        title={`View ${author.name}'s profile`}
+                                                        className='group flex items-center gap-2 rounded-full pr-2 transition-colors hover:bg-primary/10'
+                                                    >
+                                                        {content}
+                                                    </a>
+                                                ) : (
+                                                    <span className='flex items-center gap-2'>{content}</span>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
                             )}
+
+                            {createdAt && (
+                                <>
+                                    <span className='flex items-center gap-1.5 whitespace-nowrap'>
+                                        <Calendar className='size-4' />
+                                        <time dateTime={data.createdAt}>
+                                            {createdAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                        </time>
+                                    </span>
+                                    <span className='flex items-center gap-1.5 whitespace-nowrap'>
+                                        <Clock className='size-4' />
+                                        {formatDistanceToNow(createdAt)} ago
+                                    </span>
+                                </>
+                            )}
+                            {data.stats?.readingMins !== undefined && (
+                                <span className='flex items-center gap-1.5 whitespace-nowrap'>
+                                    <BookOpen className='size-4' />
+                                    {data.stats.readingMins} min read
+                                </span>
+                            )}
+                            <ViewCounter slug={data.slug} initialViews={data.stats?.views ?? 0} />
                         </div>
-                        <p className='text-base text-foreground/50 mt-5 tracking-wide leading-relaxed font-sans'>{data.description}</p>
-                    </div>
+                    </header>
 
-                    <div className='flex items-center gap-4 mb-5 justify-start flex-wrap'>
-                        {data.createdAt && (
-                            <>
-                                <div className='flex items-center space-x-1 max-sm:text-xs text-sm text-foreground/50'>
-                                    <Calendar className='size-4' />
-                                    <time dateTime={data.createdAt} className='whitespace-nowrap'>
-                                        {new Date(data.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                    </time>
-                                </div>
-                                <div className='flex items-center space-x-1 max-sm:text-xs text-sm text-foreground/50 whitespace-nowrap'>
-                                    <Clock className='w-4 h-4' />
-                                    <span>{formatDistanceToNow(new Date(data.createdAt))} ago</span>
-                                </div>
-                            </>
-                        )}
-                        {data.stats?.readingMins !== undefined && (
-                            <div className='flex items-center space-x-1 max-sm:text-xs text-sm text-foreground/50 whitespace-nowrap'>
-                                <Clock className='w-4 h-4 text-primary/70' />
-                                <span>{data.stats.readingMins} min read</span>
-                            </div>
-                        )}
-                        {data.stats?.views !== undefined && (
-                            <div className='flex items-center space-x-1 max-sm:text-xs text-sm text-foreground/50 whitespace-nowrap'>
-                                <Eye className='w-4 h-4 text-primary/70' />
-                                <span>{data.stats.views} views</span>
-                            </div>
-                        )}
-                    </div>
-
-                    <ul className="py-2 gap-1 sm:gap-4 items-center flex">
-                        {(data.authors ?? []).map((author, index) => (
-                            <li key={index} className='flex items-center'>
-                                <Link
-                                    rel='noopener noreferrer'
-                                    // target='_blank'
-                                    href={!author.url ? (author.profile ? String(author.profile).replace('.png', '') : '#') : author.url}
-                                    className='flex items-center space-x-2'
-                                >
-                                    <Avatar className='w-8 h-8'>
-                                        <AvatarImage src={author.profile} alt={author.name} referrerPolicy="no-referrer" />
-                                        <AvatarFallback>
-                                            <User className='w-4 h-4' />
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className='flex flex-col'>
-                                        <p className='font-medium text-sm leading-tight'>{author.name}</p>
-                                        {author.profile && <p className='text-xs text-muted-foreground leading-tight'>{author.profile}</p>}
-                                    </div>
-                                </Link>
-
-                                {index < (data.authors?.length ?? 0) - 1 && (
-                                    <div className='mx-2 sm:mx-4 h-4 w-px bg-foreground/30' />
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-
-                    <div className='py-5 '>
-                        <div className='mx-auto pb-10 border-b border-foreground/10'>
+                    <div className='py-8'>
+                        <div className='mx-auto border-b border-foreground/10 pb-10'>
                             <MarkdownRenderer content={data.content} />
                         </div>
 
-                        <div className='flex flex-col gap-3 mt-10'>
-                            <div className='flex items-center mx-auto justify-between w-full gap-3'>
-                                {articleRes.navigation?.prev ? (
-                                    <Button asChild variant={'outline'} className="max-sm:px-2">
-                                        <Link href={`/posts/${articleRes.navigation.prev.slug}`}>
-                                            <ArrowLeftIcon className='w-4 h-4 shrink-0' />
-                                            <span className='sm:hidden'>Prev</span>
-                                            <span className='max-sm:hidden'>Previous</span>
+                        {(prevSlug || nextSlug) && (
+                            <nav className='mt-10 flex items-center justify-between gap-3' aria-label='More posts'>
+                                {prevSlug ? (
+                                    <Button asChild variant='outline' className='max-sm:px-2'>
+                                        <Link href={`/posts/${encodeURIComponent(prevSlug)}`}>
+                                            <ArrowLeftIcon className='size-4 shrink-0' /> Previous
                                         </Link>
                                     </Button>
-                                ) : (<div />)}
-
-                                {articleRes.navigation?.next ? (
-                                    <Button asChild variant={'outline'} className="max-sm:px-2">
-                                        <Link href={`/posts/${articleRes.navigation.next.slug}`}>
-                                            <ArrowRightIcon className='w-4 h-4 shrink-0' />
-                                            <span className='sm:hidden'>Next</span>
-                                            <span className='max-sm:hidden'>Next</span>
+                                ) : (<span />)}
+                                {nextSlug ? (
+                                    <Button asChild variant='outline' className='max-sm:px-2'>
+                                        <Link href={`/posts/${encodeURIComponent(nextSlug)}`}>
+                                            Next <ArrowRightIcon className='size-4 shrink-0' />
                                         </Link>
                                     </Button>
-                                ) : (<div />)}
-                            </div>
-                        </div>
+                                ) : (<span />)}
+                            </nav>
+                        )}
                     </div>
-
                 </article>
             </div>
 

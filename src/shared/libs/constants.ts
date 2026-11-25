@@ -6,3 +6,6 @@ export const APP_API = process.env.NEXT_PUBLIC_APP_API ?? '';
 
 /** Contact email address */
 export const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'info.sophat@gmail.com';
+
+/** Admin dashboard, used for "Edit Post" links */
+export const ADMIN_URL = 'https://admin.pphat.me';

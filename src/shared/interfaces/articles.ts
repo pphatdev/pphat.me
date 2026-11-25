@@ -46,8 +46,9 @@ export interface IArticleListResponse {
 
 export interface IArticleDetailResponse {
     data: IArticle;
+    /** The API returns absolute URLs (`…/articles/<slug>`) for neighbours. */
     navigation?: {
-        next: IArticle | null;
-        prev: IArticle | null;
+        next: string | null;
+        prev: string | null;
     };
 }
