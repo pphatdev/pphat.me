@@ -1,4 +1,5 @@
 import { cpSync, copyFileSync, existsSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { securityHeaders } from '../security-headers.mjs';
 
 // Cloudflare Pages serves `.open-next/assets` as the site root and treats
 // `_worker.js` at that root as the Pages Functions entry. Copy the OpenNext
@@ -26,4 +27,12 @@ if (existsSync('public')) {
 writeFileSync(
     '.open-next/assets/_routes.json',
     JSON.stringify({ version: 1, include: ['/*'], exclude }, null, 2),
+);
+
+// Pages serves the excluded static files above without running the worker,
+// so next.config headers() never applies to them. Mirror the same security
+// headers onto static assets via Pages' `_headers` file.
+writeFileSync(
+    '.open-next/assets/_headers',
+    ['/*', ...securityHeaders().map(({ key, value }) => `  ${key}: ${value}`), ''].join('\n'),
 );
