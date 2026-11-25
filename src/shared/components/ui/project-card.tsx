@@ -15,7 +15,7 @@ const ProjectCard: React.FC<{ project: Project, className?: string }> = ({ proje
         imageUrl: contributor.avatarUrl,
         profileUrl: contributor.url,
         title: contributor.name,
-    }));
+    })) ?? [];
 
     return (
         <article
@@ -34,7 +34,7 @@ const ProjectCard: React.FC<{ project: Project, className?: string }> = ({ proje
             </div>
 
             <div className='ring-1 bg-background/20 absolute top-1/2 right-5 translate-y-[-18%] w-fit ring-foreground/10 justify-end flex  max-sm:rounded-none rounded-full p-1'>
-                <AvatarCircles numPeople={avatars.length - 4} avatarUrls={avatars} />
+                <AvatarCircles numPeople={Math.max(0, avatars.length - 4)} avatarUrls={avatars} />
             </div>
 
             <h2 className="text-lg px-2.5 mt-4 z-10 font-semibold font-sans leading-8 tracking-tight line-clamp-1">{project.title}</h2>
@@ -52,7 +52,7 @@ const ProjectCard: React.FC<{ project: Project, className?: string }> = ({ proje
 
             {/* <footer className="mt-auto px-4 pb-4 flex justify-between pt-2 z-10">
                 <div className='bg-foreground/5 ring-1 w-fit ring-foreground/10 justify-end flex  max-sm:rounded-none rounded-full p-1'>
-                    <AvatarCircles numPeople={avatars.length - 4} avatarUrls={avatars} />
+                    <AvatarCircles numPeople={Math.max(0, avatars.length - 4)} avatarUrls={avatars} />
                 </div>
             </footer> */}
         </article>
