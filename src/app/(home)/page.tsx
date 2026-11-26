@@ -6,8 +6,11 @@ import { SectionAboutMe } from "./about";
 import { SectionProjects } from "@/app/(home)/projects";
 import { SectionExperience } from "./experience";
 import { experiencesData } from "./experience-data";
+import { getLatestPost } from "./latest-post";
 
-export default function Home() {
+export default async function Home() {
+    const latestPost = await getLatestPost();
+
     return (
         <div className="w-full flex flex-col">
             {/* <HomePersonStructuredData />
@@ -15,7 +18,7 @@ export default function Home() {
             <OrganizationStructuredData /> */}
 
             {/* Hero Section */}
-            <HeroSection />
+            <HeroSection latestPost={latestPost} />
 
             {/* About Me Section */}
             <SectionAboutMe />

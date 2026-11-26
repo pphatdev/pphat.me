@@ -13,13 +13,15 @@ import { cn } from "@/shared/libs/utils";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useCallback } from "react";
+import type { LatestPost } from "./latest-post";
 
 
-export default function HeroSection() {
+export default function HeroSection({ latestPost }: { latestPost?: LatestPost | null }) {
 
-    const latestBlogHref = `/posts`;
-    const latestBlogAria = 'New blog';
-    const latestBlogLabel = 'New Blog';
+    // Falls back to the blog index when the API is unavailable.
+    const latestBlogHref = latestPost ? `/posts/${encodeURIComponent(latestPost.slug)}` : `/posts`;
+    const latestBlogLabel = latestPost?.title ?? 'New Blog';
+    const latestBlogAria = latestPost ? `New blog post: ${latestPost.title}` : 'New blog';
 
     const loadImage = (src: string): Promise<HTMLImageElement> =>
         new Promise<HTMLImageElement>(resolve => {
