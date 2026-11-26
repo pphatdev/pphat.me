@@ -1,4 +1,4 @@
-import { cpSync, copyFileSync, existsSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { securityHeaders } from '../security-headers.mjs';
 
 // Cloudflare Pages serves `.open-next/assets` as the site root and treats
@@ -6,10 +6,46 @@ import { securityHeaders } from '../security-headers.mjs';
 // worker into position and stage the sibling output dirs it resolves from.
 copyFileSync('.open-next/worker.js', '.open-next/assets/_worker.js');
 
+// Copy with symlinks resolved to real files. With pnpm,
+// `server-functions/*/node_modules` is a tree of symlinks into
+// `node_modules/.pnpm/`, which lives outside the output dir, and Pages rejects
+// the upload with "build output directory contains links to files that can't
+// be accessed". (fs.cpSync's `dereference` only resolves the top-level source,
+// not nested links, so it can't be used here.)
+const copyResolved = (src, dest, ancestors = new Set()) => {
+    const real = realpathSync(src);
+    const stats = statSync(real);
+    if (!stats.isDirectory()) {
+        copyFileSync(real, dest);
+        return;
+    }
+    if (ancestors.has(real)) return; // symlink cycle
+    const next = new Set(ancestors).add(real);
+    mkdirSync(dest, { recursive: true });
+    for (const entry of readdirSync(real)) {
+        copyResolved(`${src}/${entry}`, `${dest}/${entry}`, next);
+    }
+};
+
 const staged = ['cloudflare', 'middleware', 'server-functions', '.build'];
 for (const dir of staged) {
     const src = `.open-next/${dir}`;
-    if (existsSync(src)) cpSync(src, `.open-next/assets/${dir}`, { recursive: true });
+    if (existsSync(src)) copyResolved(src, `.open-next/assets/${dir}`);
+}
+
+// Fail here with a clear message rather than at Pages' upload validation.
+const links = [];
+const findLinks = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = `${dir}/${entry.name}`;
+        if (entry.isSymbolicLink()) links.push(path);
+        else if (entry.isDirectory()) findLinks(path);
+    }
+};
+findLinks('.open-next/assets');
+if (links.length) {
+    console.error(`Symlinks left in .open-next/assets (Pages will reject them):\n  ${links.slice(0, 20).join('\n  ')}`);
+    process.exit(1);
 }
 
 // Without _routes.json, Pages sends every request through _worker.js, so
