@@ -2,8 +2,8 @@
 "use client";
 
 import { cn } from '@/shared/libs/utils';
-import type { HTMLMotionProps, Transition, Variants } from "motion/react";
-import { motion, useAnimation, useReducedMotion } from "motion/react";
+import type { HTMLMotionProps, Transition, Variants } from "framer-motion";
+import { motion, useAnimation, useReducedMotion } from "framer-motion";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
 export interface CopyIconHandle {
