@@ -9,6 +9,17 @@ import { ChevronLeft, ChevronRight, SearchX } from "lucide-react";
 import Link from "next/link";
 import { upstream, parseUpstream } from "@/app/api/lib/client";
 import { IArticleListResponse } from "@/shared/interfaces/articles";
+import { Metadata } from "next";
+import { openGraphBase } from "@/shared/seo/site";
+
+const description = "Articles by LEAT Sophat on front-end development, UI/UX design, and the tools and lessons from building for the web.";
+
+export const metadata: Metadata = {
+    title: "Blog",
+    description,
+    alternates: { canonical: "/posts" },
+    openGraph: { ...openGraphBase, title: "Blog | LEAT Sophat", description, url: "/posts" },
+};
 
 type Props = {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>

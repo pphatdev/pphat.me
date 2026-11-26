@@ -16,6 +16,8 @@ import { IArticleDetailResponse } from '@/shared/interfaces/articles';
 import { appName } from '@/shared/data';
 import { ADMIN_URL } from '@/shared/libs/constants';
 import { getOrigin } from '@/shared/seo/origin';
+import { SITE_NAME, SITE_OG_IMAGE } from '@/shared/seo/site';
+import { itemKeywords } from '@/shared/seo/content';
 
 interface Params {
     params: Promise<{
@@ -40,7 +42,12 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
     return {
         title: `${data.title}`,
         description: data.description,
-        alternates: { canonical: `/posts/${data.slug}` },
+        // The post's own keywords from the API, else its tags.
+        keywords: itemKeywords(data),
+        alternates: {
+            canonical: `/posts/${data.slug}`,
+            types: { 'text/markdown': `/posts/${encodeURIComponent(data.slug)}/llms.txt` },
+        },
         authors: data.authors?.map((author) => ({
             name: author.name,
             url: author.url,
@@ -48,18 +55,25 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
             name: appName,
             url: origin,
         }],
+        // openGraph replaces the layout's object wholesale, so repeat site fields.
         openGraph: {
             title: `${data.title}`,
             description: data.description,
             type: 'article',
             url: `/posts/${data.slug}`,
-            images: data.thumbnail ? [{ url: data.thumbnail.toString() }] : undefined,
+            siteName: SITE_NAME,
+            locale: 'en_US',
+            publishedTime: data.createdAt,
+            modifiedTime: data.updatedAt,
+            authors: data.authors?.map((author) => author.name),
+            tags: data.tags?.map((tag) => tag.tag),
+            images: data.thumbnail ? [{ url: data.thumbnail.toString() }] : [SITE_OG_IMAGE],
         },
         twitter: {
             card: 'summary_large_image',
             title: `${data.title}`,
             description: data.description,
-            images: data.thumbnail ? [{ url: data.thumbnail.toString() }] : undefined,
+            images: [data.thumbnail ? data.thumbnail.toString() : SITE_OG_IMAGE.url],
         },
     };
 }

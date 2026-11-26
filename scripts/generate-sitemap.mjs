@@ -27,7 +27,10 @@ for (const envFile of ['.env.local', '.env']) {
     }
 }
 
-const BASE_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://pphat.me').replace(/\/$/, '');
+// Canonical production domain. Deliberately not NEXT_PUBLIC_APP_URL: that var
+// has been set to other hosts (blog.pphat.me, pphat.pages.app), which put the
+// wrong domain into every sitemap URL. Keep in sync with src/shared/seo/site.ts.
+const BASE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://pphat.me').replace(/\/$/, '');
 const API_BASE = (process.env.NEXT_PUBLIC_APP_API || 'https://api.pphat.me').replace(/\/$/, '');
 const API_KEY = process.env.NEXT_PPHAT_API_KEY || process.env.PPHAT_API_KEY || '';
 

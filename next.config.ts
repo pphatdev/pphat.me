@@ -22,6 +22,17 @@ const nextConfig: NextConfig = {
                 destination: 'https://admin.pphat.me',
                 permanent: true,
             },
+            // The API and older links call posts "articles"; posts live at /posts.
+            {
+                source: '/articles/:path*',
+                destination: '/posts/:path*',
+                permanent: true,
+            },
+            {
+                source: '/articles',
+                destination: '/posts',
+                permanent: true,
+            },
             {
                 source: '/admin',
                 destination: 'https://admin.pphat.me',
