@@ -94,19 +94,26 @@ function formatDate(value) {
     return Number.isNaN(d.getTime()) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
 }
 
+// The API is optional at build time: if it can't be reached (down, 401 on a
+// preview build without the key, slow), skip its pages and keep building.
+// The timeout stops an unreachable API from stalling the whole build.
+const API_TIMEOUT_MS = 5_000;
+
 async function fetchList(path) {
     try {
         const res = await fetch(`${API_BASE}${path}`, {
             headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+            signal: AbortSignal.timeout(API_TIMEOUT_MS),
         });
         if (!res.ok) {
-            console.warn(`  ⚠  ${path} → HTTP ${res.status}`);
+            console.warn(`  ⚠  ${path} → HTTP ${res.status}; skipping (static pages only)`);
             return [];
         }
         const json = await res.json();
         return Array.isArray(json?.data) ? json.data : [];
     } catch (err) {
-        console.warn(`  ⚠  ${path} → ${err.message}`);
+        const reason = err?.name === 'TimeoutError' ? `no response in ${API_TIMEOUT_MS / 1000}s` : err.message;
+        console.warn(`  ⚠  ${path} → ${reason}; skipping (static pages only)`);
         return [];
     }
 }
