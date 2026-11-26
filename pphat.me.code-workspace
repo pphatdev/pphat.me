@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../admin.pphat.me"
+		},
+		{
+			"path": "../api.pphat.me"
+		}
+	],
+	"settings": {}
+}
