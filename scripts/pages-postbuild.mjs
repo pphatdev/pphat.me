@@ -52,13 +52,38 @@ if (links.length) {
 // static files (hashed chunks under /_next/static/*, plus everything in
 // public/) come back as HTML and 404 in the browser. Exclude the Next chunks
 // and every top-level entry in public/ so Pages serves them from assets.
+//
+// A public/ dir that shares its name with an app route (e.g. public/projects/
+// holding sitemap.xml next to the /projects page) must NOT be excluded with a
+// wildcard: Pages' `/projects/*` also matches `/projects` itself, so the page
+// and every /projects/[slug] would be served as missing static files (404).
+// For those dirs, exclude each file individually instead.
+const appRoutes = new Set(
+    existsSync('src/app')
+        ? readdirSync('src/app', { withFileTypes: true })
+            .filter((e) => e.isDirectory() && !e.name.startsWith('(') && !e.name.startsWith('_'))
+            .map((e) => e.name)
+        : [],
+);
+const listFiles = (dir) =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? listFiles(`${dir}/${e.name}`) : [`${dir}/${e.name}`],
+    );
+
 const exclude = ['/_next/static/*'];
 if (existsSync('public')) {
     for (const entry of readdirSync('public')) {
         if (entry.startsWith('.')) continue;
         const isDir = statSync(`public/${entry}`).isDirectory();
-        exclude.push(isDir ? `/${entry}/*` : `/${entry}`);
+        if (!isDir) exclude.push(`/${entry}`);
+        else if (!appRoutes.has(entry)) exclude.push(`/${entry}/*`);
+        else exclude.push(...listFiles(`public/${entry}`).map((f) => f.slice('public'.length)));
     }
+}
+// Pages allows at most 100 include + exclude rules in _routes.json.
+if (exclude.length + 1 > 100) {
+    console.error(`_routes.json would have ${exclude.length + 1} rules (Pages max is 100).`);
+    process.exit(1);
 }
 writeFileSync(
     '.open-next/assets/_routes.json',
