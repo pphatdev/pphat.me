@@ -3,5 +3,9 @@
   "name": "pphat",
   "pages_build_output_dir": ".open-next/assets",
   "compatibility_date": "2026-08-01",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
+  // _worker.js/ is pre-bundled with wrangler 4 by scripts/pages-postbuild.mjs.
+  // Pages' Git build uploads with wrangler 3, whose re-bundle breaks the
+  // OpenNext worker at runtime, so tell it to upload as-is.
+  "no_bundle": true
 }
