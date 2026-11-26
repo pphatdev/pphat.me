@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
     return (
-        <html lang="en" suppressHydrationWarning className="scroll-smooth">
+        <html lang="en" suppressHydrationWarning className="scroll-smooth" data-scroll-behavior="smooth">
             <head>
                 {/*
                     Turbopack minifies next-themes' blocking inline script with esbuild
