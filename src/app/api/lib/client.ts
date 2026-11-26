@@ -1,7 +1,9 @@
 /**
  * Thin wrapper around `fetch` that targets the upstream pphat API.
  *
- * Base URL: process.env.NEXT_PUBLIC_APP_API (falls back to the workers.dev host).
+ * Base URL: process.env.NEXT_PUBLIC_APP_API (falls back to https://api.pphat.me).
+ * NEXT_PUBLIC_* is inlined at build time, and CI passes a missing secret as
+ * an empty string, so empty must count as unset (`||`, not `??`).
  *
  * SECURITY: every request carries `NEXT_PPHAT_API_KEY`, which the API treats
  * as the user who issued it. This client is therefore read-only (GET/HEAD)
@@ -16,7 +18,7 @@
  *   const res = await upstream(`/v1/api/articles/${slug}`);
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_API?.replace(/\/$/, '') ?? 'https://blog-api.pphatdev.workers.dev';
+const BASE_URL = (process.env.NEXT_PUBLIC_APP_API || 'https://api.pphat.me').replace(/\/$/, '');
 const API_PREFIX = '/v1/api/';
 const SAFE_METHODS = new Set(['GET', 'HEAD']);
 const MAX_SEGMENT_LENGTH = 200;

@@ -28,7 +28,7 @@ for (const envFile of ['.env.local', '.env']) {
 }
 
 const BASE_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://pphat.me').replace(/\/$/, '');
-const API_BASE = (process.env.NEXT_PUBLIC_APP_API || 'https://blog-api.pphatdev.workers.dev').replace(/\/$/, '');
+const API_BASE = (process.env.NEXT_PUBLIC_APP_API || 'https://api.pphat.me').replace(/\/$/, '');
 const API_KEY = process.env.NEXT_PPHAT_API_KEY || process.env.PPHAT_API_KEY || '';
 
 // Per-route overrides for priority / changefreq. Unlisted routes get defaults.
