@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "build": "next build --webpack",
+    "dev": "node scripts/generate-brands.mjs && node scripts/dev.mjs",
+    "build": "node scripts/generate-brands.mjs && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "sitemap": "node scripts/generate-sitemap.mjs",

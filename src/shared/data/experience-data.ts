@@ -1,29 +1,5 @@
-import fs from 'fs';
-import path from 'path';
 import { CompaniesProps } from '@/shared/hooks/skills';
-
-const publicDir = path.join(process.cwd(), 'public');
-
-const getSkill = (title: string, fileName?: string) => {
-    const name = (fileName || title).toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
-    const searchPaths = [
-        `assets/brands/stacks/${name}.svg`,
-        `assets/brands/design/${name}.svg`,
-        `assets/brands/office/${name}.svg`,
-        `assets/brands/deploy/${name}.svg`,
-        `assets/brands/stacks/${name}.png`,
-        `assets/brands/stacks/${name}.jpg`,
-    ];
-
-    for (const relPath of searchPaths) {
-        const fullPath = path.join(publicDir, relPath);
-        if (fs.existsSync(fullPath)) {
-            const svg = relPath.endsWith('.svg') ? fs.readFileSync(fullPath, 'utf8') : undefined;
-            return { title, svg };
-        }
-    }
-    return { title };
-};
+import { getSkill } from '@/shared/libs/brands';
 
 export const experiencesData: CompaniesProps[] = [
     {
