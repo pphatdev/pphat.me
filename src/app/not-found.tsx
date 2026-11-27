@@ -10,12 +10,8 @@ import Link from 'next/link';
 export const metadata: Metadata = {
     title: `404 - Page Not Found`,
     description: 'The page you were looking for does not exist or has been moved.',
-    openGraph: {
-        title: `404 - Page Not Found`,
-        description: 'The page you were looking for does not exist or has been moved.',
-        url: '/',
-        images: [{ url: '/assets/avatars/hero.webp' }],
-    }
+    // Never index error pages.
+    robots: { index: false, follow: true },
 };
 
 export default function NotFound() {

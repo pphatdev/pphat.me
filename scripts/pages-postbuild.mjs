@@ -1,37 +1,86 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { securityHeaders } from '../security-headers.mjs';
 
-// Cloudflare Pages serves `.open-next/assets` as the site root and treats
-// `_worker.js` at that root as the Pages Functions entry. Copy the OpenNext
-// worker into position and stage the sibling output dirs it resolves from.
-copyFileSync('.open-next/worker.js', '.open-next/assets/_worker.js');
+// Cloudflare Pages serves `.open-next/assets` as the site root and runs
+// `_worker.js` at that root as the Pages Functions entry.
+//
+// Pages' Git build always re-compiles `_worker.js` with its own wrangler 3
+// (it ignores `no_bundle`). That esbuild pass swaps node:module, node:process,
+// node:async_hooks, node:fs, node:crypto, node:http(s), ... for old unenv
+// polyfills, and the OpenNext worker then crashes at runtime: Next's
+// require-hook does `require('module').prototype.require` -> "Cannot read
+// properties of undefined (reading 'require')", 500 on every route.
+//
+// So:
+//  1. bundle the worker here with the project's wrangler 4 -> `_worker.js/app.js`
+//  2. make `_worker.js/index.js` a tiny loader that imports ./app.js through a
+//     non-literal specifier. esbuild can't follow it, so Pages' compile leaves
+//     app.js (and its native node:* imports) untouched and ships it as an
+//     extra module.
+//
+// This also means the server folders (server-functions, middleware, ...) no
+// longer have to be copied into the public assets dir, where they were
+// downloadable and, with pnpm, full of symlinks that Pages rejects.
+const require = createRequire(import.meta.url);
+// wrangler's "exports" only exposes package.json, not bin/, so resolve via it.
+const wranglerPkgPath = require.resolve('wrangler/package.json');
+const wranglerBin = join(dirname(wranglerPkgPath), require(wranglerPkgPath).bin.wrangler);
+const wranglerConfig = JSON.parse(
+    // wrangler.jsonc: strip comments before parsing.
+    readFileSync('wrangler.jsonc', 'utf8').replace(/^\s*\/\/.*$/gm, ''),
+);
 
-// Copy with symlinks resolved to real files. With pnpm,
-// `server-functions/*/node_modules` is a tree of symlinks into
-// `node_modules/.pnpm/`, which lives outside the output dir, and Pages rejects
-// the upload with "build output directory contains links to files that can't
-// be accessed". (fs.cpSync's `dereference` only resolves the top-level source,
-// not nested links, so it can't be used here.)
-const copyResolved = (src, dest, ancestors = new Set()) => {
-    const real = realpathSync(src);
-    const stats = statSync(real);
-    if (!stats.isDirectory()) {
-        copyFileSync(real, dest);
-        return;
-    }
-    if (ancestors.has(real)) return; // symlink cycle
-    const next = new Set(ancestors).add(real);
-    mkdirSync(dest, { recursive: true });
-    for (const entry of readdirSync(real)) {
-        copyResolved(`${src}/${entry}`, `${dest}/${entry}`, next);
-    }
-};
+const bundleDir = '.open-next/.pages-bundle';
+rmSync(bundleDir, { recursive: true, force: true });
+mkdirSync(bundleDir, { recursive: true });
+// --outdir resolves relative to the config file, so keep both in bundleDir.
+writeFileSync(
+    `${bundleDir}/wrangler.json`,
+    JSON.stringify({
+        name: wranglerConfig.name,
+        main: '../worker.js',
+        compatibility_date: wranglerConfig.compatibility_date,
+        compatibility_flags: wranglerConfig.compatibility_flags,
+    }),
+);
+execFileSync(
+    process.execPath,
+    [wranglerBin, 'deploy', '--dry-run', '--outdir', 'out', '--config', `${bundleDir}/wrangler.json`],
+    { stdio: 'inherit', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } },
+);
 
-const staged = ['cloudflare', 'middleware', 'server-functions', '.build'];
-for (const dir of staged) {
-    const src = `.open-next/${dir}`;
-    if (existsSync(src)) copyResolved(src, `.open-next/assets/${dir}`);
+const bundled = readdirSync(`${bundleDir}/out`).filter((f) => !f.endsWith('.map') && f !== 'README.md');
+if (!bundled.includes('worker.js')) {
+    console.error(`wrangler did not produce ${bundleDir}/out/worker.js (got: ${bundled.join(', ')})`);
+    process.exit(1);
 }
+const workerDir = '.open-next/assets/_worker.js';
+rmSync(workerDir, { recursive: true, force: true });
+mkdirSync(workerDir, { recursive: true });
+for (const file of bundled) {
+    copyFileSync(`${bundleDir}/out/${file}`, `${workerDir}/${file === 'worker.js' ? 'app.js' : file}`);
+}
+// Only `fetch` is forwarded. The bundle's other exports are Durable Object
+// classes (OpenNext queue/tag cache), which this project does not bind;
+// re-exporting them would need a static import and defeat the point.
+writeFileSync(
+    `${workerDir}/index.js`,
+    `// Generated by scripts/pages-postbuild.mjs. The real worker is ./app.js;
+// the specifier is non-literal on purpose so Pages' esbuild pass can't
+// re-bundle it (see the script for why).
+const appPath = ['.', 'app.js'].join('/');
+let app;
+const load = () => (app ??= import(appPath));
+export default {
+    async fetch(request, env, ctx) {
+        return (await load()).default.fetch(request, env, ctx);
+    },
+};
+`,
+);
 
 // Fail here with a clear message rather than at Pages' upload validation.
 const links = [];

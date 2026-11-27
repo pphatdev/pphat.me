@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/shared/libs/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, RotateCw, Download } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';

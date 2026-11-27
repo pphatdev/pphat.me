@@ -6,6 +6,8 @@ import { Suspense } from 'react';
 import { cacheLife } from 'next/cache';
 import { safeSegment, upstream } from '@/app/api/lib/client';
 import { authorAvatar, authorHref } from '@/shared/libs/author';
+import { SITE_NAME, SITE_OG_IMAGE } from '@/shared/seo/site';
+import { itemKeywords } from '@/shared/seo/content';
 
 import { GridPattern } from '@/shared/components/background/grid-pattern';
 import { Button } from '@/shared/components/ui/button';
@@ -49,7 +51,12 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
     return {
         title: `${data.title}`,
         description: data.description,
-        alternates: { canonical: `/projects/${data.slug}` },
+        // The project's own keywords from the API, else its tags.
+        keywords: itemKeywords(data),
+        alternates: {
+            canonical: `/projects/${data.slug}`,
+            types: { 'text/markdown': `/projects/${encodeURIComponent(data.slug)}/llms.txt` },
+        },
         authors: data.contributors?.map((author) => ({
             name: author.name,
             url: author.url,
@@ -57,18 +64,21 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
             name: appName,
             url: origin,
         }],
+        // openGraph replaces the layout's object wholesale, so repeat site fields.
         openGraph: {
             title: `${data.title}`,
             description: data.description,
             type: 'website',
             url: `/projects/${data.slug}`,
-            images: data.thumbnail ? [{ url: data.thumbnail.toString() }] : undefined,
+            siteName: SITE_NAME,
+            locale: 'en_US',
+            images: data.thumbnail ? [{ url: data.thumbnail.toString() }] : [SITE_OG_IMAGE],
         },
         twitter: {
             card: 'summary_large_image',
             title: `${data.title}`,
             description: data.description,
-            images: data.thumbnail ? [{ url: data.thumbnail.toString() }] : undefined,
+            images: [data.thumbnail ? data.thumbnail.toString() : SITE_OG_IMAGE.url],
         },
     };
 }

@@ -25,7 +25,9 @@ export interface IArticleStats {
     readingMins: number;
 }
 
-export interface IArticle {
+import { ISeoFields } from '.';
+
+export interface IArticle extends ISeoFields {
     id: string;
     title: string;
     slug: string;

@@ -8,15 +8,62 @@ import DefaultHead from '@/shared/seo/head';
 import { NavigationBar } from "@/shared/components/layouts/navbar";
 import { GridPattern } from "@/shared/components/background/grid-pattern";
 import { Metadata } from "next";
-import { getOrigin } from "@/shared/seo/origin";
+import {
+    SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, SITE_OG_IMAGE, SITE_TITLE, SITE_URL, TWITTER_HANDLE,
+} from "@/shared/seo/site";
+import { SiteStructuredData } from "@/shared/seo/structured-data";
 
-export async function generateMetadata(): Promise<Metadata> {
-    return { metadataBase: new URL(await getOrigin()) };
-}
+// Site-wide defaults. Pages override title/description/canonical as needed;
+// a page's `title: "Projects"` renders as "Projects | LEAT Sophat".
+export const metadata: Metadata = {
+    metadataBase: new URL(SITE_URL),
+    title: {
+        default: SITE_TITLE,
+        template: `%s | ${SITE_NAME}`,
+    },
+    description: SITE_DESCRIPTION,
+    keywords: SITE_KEYWORDS,
+    applicationName: SITE_NAME,
+    authors: [{ name: SITE_NAME, url: SITE_URL }],
+    creator: SITE_NAME,
+    publisher: SITE_NAME,
+    // No `alternates.canonical` / `openGraph.url` here: children inherit them,
+    // which would mark every page as a duplicate of "/". Each page sets its own.
+    openGraph: {
+        type: 'website',
+        locale: 'en_US',
+        siteName: SITE_NAME,
+        title: SITE_TITLE,
+        description: SITE_DESCRIPTION,
+        images: [SITE_OG_IMAGE],
+    },
+    // No twitter title/description: pages inherit this object as-is, which would
+    // give every page the home title. X falls back to each page's og:title.
+    twitter: {
+        card: 'summary_large_image',
+        site: TWITTER_HANDLE,
+        creator: TWITTER_HANDLE,
+        images: [SITE_OG_IMAGE.url],
+    },
+    robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+            index: true,
+            follow: true,
+            'max-snippet': -1,
+            'max-image-preview': 'large',
+            'max-video-preview': -1,
+        },
+    },
+    verification: {
+        google: 'googleff785c31669eafd5',
+    },
+};
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
     return (
-        <html lang="en" suppressHydrationWarning className="scroll-smooth">
+        <html lang="en" suppressHydrationWarning className="scroll-smooth" data-scroll-behavior="smooth">
             <head>
                 {/*
                     Turbopack minifies next-themes' blocking inline script with esbuild
@@ -30,6 +77,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                     }}
                 />
                 <DefaultHead />
+                <SiteStructuredData />
             </head>
             <body className={cn(poppins.variable, kantumruyPro.variable, aladin.variable, srisakdi.variable, openSans.variable, `antialiased p-0 m-0 font-sans bg-body `)} style={{ overflowX: 'hidden' }}>
                 <ThemeProvider
