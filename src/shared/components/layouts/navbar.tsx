@@ -9,6 +9,7 @@ import { Button } from "../ui/button";
 import { navbarMenu } from "@/shared/data";
 import GithubIcon from "../icons/github";
 import { MobileNav, MobileNavHeader, MobileNavMenu, MobileNavToggle, Navbar, NavbarLogo, NavBody, NavItems } from "./resizable-navbar";
+import { AccountMenu } from "./account-menu";
 
 export const NavigationBar = ({ className }: { className?: string }) => {
     return (
@@ -45,6 +46,7 @@ const NavigationBarInner = ({ className }: { className?: string }) => {
                             <GithubIcon />
                         </Link>
                     </MagneticArea>
+                    <AccountMenu />
                 </div>
             </NavBody>
 
@@ -85,6 +87,7 @@ const NavigationBarInner = ({ className }: { className?: string }) => {
                                 <GithubIcon className="size-7" />
                             </Link>
                         </MagneticArea>
+                        <AccountMenu />
                     </div>
                 </MobileNavMenu>
             </MobileNav>

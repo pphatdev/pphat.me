@@ -5,9 +5,11 @@ import { Metadata } from 'next';
 
 import { GridPattern } from '@/shared/components/background/grid-pattern';
 import { Button } from '@/shared/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
-import { ArrowLeftIcon, ArrowRightIcon, BookOpen, Calendar, Clock, ExternalLink, User } from 'lucide-react';
+import { ArrowLeftIcon, ArrowRightIcon, BookOpen, Calendar, Clock, ExternalLink } from 'lucide-react';
 import { ViewCounter } from './view-counter';
+import { Reactions } from './reactions';
+import { Comments } from './comments';
+import { Credits } from './credits';
 import { MarkdownRenderer } from '@/shared/extension/markdown/renderer';
 import { PostCoverImage } from '../../projects/[slug]/cover'; // Reusing cover component
 import { ScrollToTopButton } from '@/shared/components/ui/scroll-to-top';
@@ -48,13 +50,12 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
             canonical: `/posts/${data.slug}`,
             types: { 'text/markdown': `/posts/${encodeURIComponent(data.slug)}/llms.txt` },
         },
-        authors: data.authors?.map((author) => ({
-            name: author.name,
-            url: author.url,
-        })) || [{
-            name: appName,
-            url: origin,
-        }],
+        // Author profiles, else the post's owner (a member's own post), else the site.
+        authors: data.authors?.length
+            ? data.authors.map((author) => ({ name: author.name, url: author.url }))
+            : data.owner?.name
+              ? [{ name: data.owner.name }]
+              : [{ name: appName, url: origin }],
         // openGraph replaces the layout's object wholesale, so repeat site fields.
         openGraph: {
             title: `${data.title}`,
@@ -130,29 +131,6 @@ function slugFromNavigation(value: string | null | undefined): string | null {
     } catch {
         return null;
     }
-}
-
-/**
- * Where an author's name/avatar should link: their own `url` when it is an
- * http(s) link, otherwise their GitHub profile derived from a
- * `https://github.com/<user>.png` avatar. Null when neither is available.
- */
-function authorHref(author: { url?: string; profile?: string }): string | null {
-    const toHttpUrl = (value?: string) => {
-        try {
-            const url = new URL(value ?? '');
-            return url.protocol === 'https:' || url.protocol === 'http:' ? url : null;
-        } catch {
-            return null;
-        }
-    };
-
-    const own = toHttpUrl(author.url);
-    if (own) return own.toString();
-
-    const avatar = toHttpUrl(author.profile);
-    const githubUser = avatar?.hostname === 'github.com' ? /^\/([A-Za-z0-9-]+)\.png$/.exec(avatar.pathname)?.[1] : undefined;
-    return githubUser ? `https://github.com/${githubUser}` : null;
 }
 
 async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
@@ -240,41 +218,7 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
                         )}
 
                         <div className='mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-foreground/10 pb-8 text-sm text-foreground/60'>
-                            {(data.authors?.length ?? 0) > 0 && (
-                                <ul className='flex flex-wrap items-center gap-x-5 gap-y-2' aria-label='Authors'>
-                                    {(data.authors ?? []).map((author, index) => {
-                                        const href = authorHref(author);
-                                        const content = (
-                                            <>
-                                                <Avatar className='size-8 ring-1 ring-foreground/10'>
-                                                    <AvatarImage src={author.profile || undefined} alt={author.name} referrerPolicy="no-referrer" />
-                                                    <AvatarFallback>
-                                                        <User className='size-4' />
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <span className='font-medium text-foreground transition-colors group-hover:text-primary'>{author.name}</span>
-                                            </>
-                                        );
-                                        return (
-                                            <li key={index}>
-                                                {href ? (
-                                                    <a
-                                                        href={href}
-                                                        target='_blank'
-                                                        rel='noopener noreferrer'
-                                                        title={`View ${author.name}'s profile`}
-                                                        className='group flex items-center gap-2 rounded-full pr-2 transition-colors hover:bg-primary/10'
-                                                    >
-                                                        {content}
-                                                    </a>
-                                                ) : (
-                                                    <span className='flex items-center gap-2'>{content}</span>
-                                                )}
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            )}
+                            <Credits article={data} />
 
                             {createdAt && (
                                 <>
@@ -303,7 +247,11 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
                     <div className='py-8'>
                         <div className='mx-auto border-b border-foreground/10 pb-10'>
                             <MarkdownRenderer content={data.content} />
+                            <div className='mt-10'>
+                                <Reactions slug={data.slug} />
+                            </div>
                         </div>
+                        <Comments slug={data.slug} />
 
                         {(prevSlug || nextSlug) && (
                             <nav className='mt-10 flex items-center justify-between gap-3' aria-label='More posts'>

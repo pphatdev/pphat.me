@@ -18,12 +18,8 @@ const nextConfig: NextConfig = {
     async redirects() {
         return [
             {
-                source: '/login',
-                destination: 'https://admin.pphat.me',
-                permanent: true,
-            },
-            // The API and older links call posts "articles"; posts live at /posts.
-            {
+                // The API and older links call posts "articles"; posts live at /posts.
+                // (/login is the blog's own reader sign-in, so it is no longer redirected.)
                 source: '/articles/:path*',
                 destination: '/posts/:path*',
                 permanent: true,

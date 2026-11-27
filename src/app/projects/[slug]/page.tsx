@@ -5,6 +5,7 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { cacheLife } from 'next/cache';
 import { safeSegment, upstream } from '@/app/api/lib/client';
+import { authorAvatar, authorHref } from '@/shared/libs/author';
 import { SITE_NAME, SITE_OG_IMAGE } from '@/shared/seo/site';
 import { itemKeywords } from '@/shared/seo/content';
 
@@ -225,11 +226,11 @@ async function ProjectContent({ params }: { params: Promise<{ slug: string }> })
                         <Link
                             rel='noopener noreferrer'
                             target='_blank'
-                            href={author.url === '' ? String(author.profile).replace('.png', '') : author.url}
+                            href={authorHref(author) ?? '#'}
                             className='flex items-center space-x-2'
                         >
                             <Avatar className='w-8 h-8'>
-                                <AvatarImage src={author.profile} alt={author.name} />
+                                <AvatarImage src={authorAvatar(author)} alt={author.name} />
                                 <AvatarFallback>
                                     <User className='w-4 h-4' />
                                 </AvatarFallback>

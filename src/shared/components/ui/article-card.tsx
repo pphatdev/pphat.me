@@ -4,6 +4,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import Link from "next/link";
 import { Share2Icon } from "lucide-react";
 import AvatarCircles from "@/shared/components/ui/avatar-circles";
+import { authorAvatar, authorHref } from "@/shared/libs/author";
 import Image from "next/image";
 import React from "react";
 import { cn } from "@/shared/libs/utils";
@@ -17,8 +18,8 @@ const ArticleCard = React.memo(({ article, actionChildren, className }: { articl
     }, [article.thumbnail]);
 
     const avatars = article?.authors?.map((author) => ({
-        imageUrl: author.profile || '',
-        profileUrl: !author.url ? (author.profile ? String(author.profile).replace('.png', '') : '#') : author.url,
+        imageUrl: authorAvatar(author) ?? '',
+        profileUrl: authorHref(author) ?? '',
         title: author.name,
     })) || [];
 

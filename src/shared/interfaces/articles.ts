@@ -6,8 +6,18 @@ export interface ITag {
 
 export interface IAuthor {
     name: string;
+    /** Headline, e.g. "Front-End Developer" (legacy rows may hold an avatar URL). */
     profile?: string;
     url?: string;
+    avatarUrl?: string;
+    socialLinks?: string[];
+}
+
+/** A user credited on a post (owner or contributor): public name and avatar only. */
+export interface IPerson {
+    id: string;
+    name: string | null;
+    avatar: string | null;
 }
 
 export interface IArticleStats {
@@ -27,6 +37,10 @@ export interface IArticle extends ISeoFields {
     thumbnail: string | null;
     published: boolean;
     ownerId: string;
+    /** The account that created the post. */
+    owner?: IPerson | null;
+    /** People invited to help write it (detail responses only). */
+    contributors?: IPerson[];
     createdAt: string;
     updatedAt: string;
     content: string;
