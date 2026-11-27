@@ -13,6 +13,13 @@ export interface IAuthor {
     socialLinks?: string[];
 }
 
+/** A user credited on a post (owner or contributor): public name and avatar only. */
+export interface IPerson {
+    id: string;
+    name: string | null;
+    avatar: string | null;
+}
+
 export interface IArticleStats {
     views: number;
     readingMins: number;
@@ -28,6 +35,10 @@ export interface IArticle {
     thumbnail: string | null;
     published: boolean;
     ownerId: string;
+    /** The account that created the post. */
+    owner?: IPerson | null;
+    /** People invited to help write it (detail responses only). */
+    contributors?: IPerson[];
     createdAt: string;
     updatedAt: string;
     content: string;

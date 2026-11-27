@@ -5,11 +5,11 @@ import { Metadata } from 'next';
 
 import { GridPattern } from '@/shared/components/background/grid-pattern';
 import { Button } from '@/shared/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
-import { ArrowLeftIcon, ArrowRightIcon, BookOpen, Calendar, Clock, ExternalLink, User } from 'lucide-react';
+import { ArrowLeftIcon, ArrowRightIcon, BookOpen, Calendar, Clock, ExternalLink } from 'lucide-react';
 import { ViewCounter } from './view-counter';
 import { Reactions } from './reactions';
 import { Comments } from './comments';
+import { Credits } from './credits';
 import { MarkdownRenderer } from '@/shared/extension/markdown/renderer';
 import { PostCoverImage } from '../../projects/[slug]/cover'; // Reusing cover component
 import { ScrollToTopButton } from '@/shared/components/ui/scroll-to-top';
@@ -17,7 +17,6 @@ import Footer from '@/shared/components/layouts/footer';
 import { IArticleDetailResponse } from '@/shared/interfaces/articles';
 import { appName } from '@/shared/data';
 import { ADMIN_URL } from '@/shared/libs/constants';
-import { authorAvatar, authorHref } from '@/shared/libs/author';
 import { getOrigin } from '@/shared/seo/origin';
 
 interface Params {
@@ -44,13 +43,11 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
         title: `${data.title}`,
         description: data.description,
         alternates: { canonical: `/posts/${data.slug}` },
-        authors: data.authors?.map((author) => ({
-            name: author.name,
-            url: author.url,
-        })) || [{
-            name: appName,
-            url: origin,
-        }],
+        authors: data.authors?.length
+            ? data.authors.map((author) => ({ name: author.name, url: author.url }))
+            : data.owner?.name
+              ? [{ name: data.owner.name }]
+              : [{ name: appName, url: origin }],
         openGraph: {
             title: `${data.title}`,
             description: data.description,
@@ -206,41 +203,7 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
                         )}
 
                         <div className='mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-foreground/10 pb-8 text-sm text-foreground/60'>
-                            {(data.authors?.length ?? 0) > 0 && (
-                                <ul className='flex flex-wrap items-center gap-x-5 gap-y-2' aria-label='Authors'>
-                                    {(data.authors ?? []).map((author, index) => {
-                                        const href = authorHref(author);
-                                        const content = (
-                                            <>
-                                                <Avatar className='size-8 ring-1 ring-foreground/10'>
-                                                    <AvatarImage src={authorAvatar(author)} alt={author.name} referrerPolicy="no-referrer" />
-                                                    <AvatarFallback>
-                                                        <User className='size-4' />
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <span className='font-medium text-foreground transition-colors group-hover:text-primary'>{author.name}</span>
-                                            </>
-                                        );
-                                        return (
-                                            <li key={index}>
-                                                {href ? (
-                                                    <a
-                                                        href={href}
-                                                        target='_blank'
-                                                        rel='noopener noreferrer'
-                                                        title={`View ${author.name}'s profile`}
-                                                        className='group flex items-center gap-2 rounded-full pr-2 transition-colors hover:bg-primary/10'
-                                                    >
-                                                        {content}
-                                                    </a>
-                                                ) : (
-                                                    <span className='flex items-center gap-2'>{content}</span>
-                                                )}
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            )}
+                            <Credits article={data} />
 
                             {createdAt && (
                                 <>
