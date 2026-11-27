@@ -15,6 +15,7 @@ import Footer from '@/shared/components/layouts/footer';
 import { IArticleDetailResponse } from '@/shared/interfaces/articles';
 import { appName } from '@/shared/data';
 import { ADMIN_URL } from '@/shared/libs/constants';
+import { authorAvatar, authorHref } from '@/shared/libs/author';
 import { getOrigin } from '@/shared/seo/origin';
 
 interface Params {
@@ -118,29 +119,6 @@ function slugFromNavigation(value: string | null | undefined): string | null {
     }
 }
 
-/**
- * Where an author's name/avatar should link: their own `url` when it is an
- * http(s) link, otherwise their GitHub profile derived from a
- * `https://github.com/<user>.png` avatar. Null when neither is available.
- */
-function authorHref(author: { url?: string; profile?: string }): string | null {
-    const toHttpUrl = (value?: string) => {
-        try {
-            const url = new URL(value ?? '');
-            return url.protocol === 'https:' || url.protocol === 'http:' ? url : null;
-        } catch {
-            return null;
-        }
-    };
-
-    const own = toHttpUrl(author.url);
-    if (own) return own.toString();
-
-    const avatar = toHttpUrl(author.profile);
-    const githubUser = avatar?.hostname === 'github.com' ? /^\/([A-Za-z0-9-]+)\.png$/.exec(avatar.pathname)?.[1] : undefined;
-    return githubUser ? `https://github.com/${githubUser}` : null;
-}
-
 async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
     const resolvedParams = await params;
     const articleRes = await getArticleDetail(resolvedParams.slug);
@@ -233,7 +211,7 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
                                         const content = (
                                             <>
                                                 <Avatar className='size-8 ring-1 ring-foreground/10'>
-                                                    <AvatarImage src={author.profile || undefined} alt={author.name} referrerPolicy="no-referrer" />
+                                                    <AvatarImage src={authorAvatar(author)} alt={author.name} referrerPolicy="no-referrer" />
                                                     <AvatarFallback>
                                                         <User className='size-4' />
                                                     </AvatarFallback>

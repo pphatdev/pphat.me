@@ -6,8 +6,11 @@ export interface ITag {
 
 export interface IAuthor {
     name: string;
+    /** Headline, e.g. "Front-End Developer" (legacy rows may hold an avatar URL). */
     profile?: string;
     url?: string;
+    avatarUrl?: string;
+    socialLinks?: string[];
 }
 
 export interface IArticleStats {
