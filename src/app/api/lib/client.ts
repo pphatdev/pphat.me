@@ -18,7 +18,7 @@
  *   const res = await upstream(`/v1/api/articles/${slug}`);
  */
 
-const BASE_URL = (process.env.NEXT_PUBLIC_APP_API || 'https://api.pphat.me').replace(/\/$/, '');
+export const BASE_URL = (process.env.NEXT_PUBLIC_APP_API || 'https://api.pphat.me').replace(/\/$/, '');
 const API_PREFIX = '/v1/api/';
 const SAFE_METHODS = new Set(['GET', 'HEAD']);
 const MAX_SEGMENT_LENGTH = 200;

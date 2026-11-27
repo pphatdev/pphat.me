@@ -8,6 +8,8 @@ import { Button } from '@/shared/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
 import { ArrowLeftIcon, ArrowRightIcon, BookOpen, Calendar, Clock, ExternalLink, User } from 'lucide-react';
 import { ViewCounter } from './view-counter';
+import { Reactions } from './reactions';
+import { Comments } from './comments';
 import { MarkdownRenderer } from '@/shared/extension/markdown/renderer';
 import { PostCoverImage } from '../../projects/[slug]/cover'; // Reusing cover component
 import { ScrollToTopButton } from '@/shared/components/ui/scroll-to-top';
@@ -267,7 +269,11 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
                     <div className='py-8'>
                         <div className='mx-auto border-b border-foreground/10 pb-10'>
                             <MarkdownRenderer content={data.content} />
+                            <div className='mt-10'>
+                                <Reactions slug={data.slug} />
+                            </div>
                         </div>
+                        <Comments slug={data.slug} />
 
                         {(prevSlug || nextSlug) && (
                             <nav className='mt-10 flex items-center justify-between gap-3' aria-label='More posts'>
