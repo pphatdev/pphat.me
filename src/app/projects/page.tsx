@@ -9,6 +9,17 @@ import { ChevronLeft, ChevronRight, SearchX } from "lucide-react";
 import Link from "next/link";
 import { upstream, parseUpstream } from "@/app/api/lib/client";
 import { IProjectListResponse } from "@/shared/interfaces/projects";
+import { Metadata } from "next";
+import { openGraphBase } from "@/shared/seo/site";
+
+const description = "Projects by LEAT Sophat: web applications, e-commerce platforms, digital libraries, and design work built with React, Next.js, and TypeScript.";
+
+export const metadata: Metadata = {
+    title: "Projects",
+    description,
+    alternates: { canonical: "/projects" },
+    openGraph: { ...openGraphBase, title: "Projects | LEAT Sophat", description, url: "/projects" },
+};
 
 type Props = {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -56,7 +67,7 @@ async function ProjectsContent({ searchParams }: Props) {
 
     return (
         <div className="w-full max-w-5xl mx-auto max-sm:p-0 px-4 pb-16">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-7 min-h-[400px]">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-7 min-h-100">
                 {error && <p className="text-center text-destructive col-span-full">Error: {error}</p>}
 
                 {projects?.data && projects.data.length === 0 && (
@@ -120,7 +131,7 @@ export default function Projects({ searchParams }: Props) {
             <Suspense fallback={<div className="min-h-36 sm:min-h-60" />}>
                 <ProjectHero />
             </Suspense>
-            <Suspense fallback={<div className="w-full min-h-[400px] flex justify-center items-center"><Spinner variant="bars" /></div>}>
+            <Suspense fallback={<div className="w-full min-h-100 flex justify-center items-center"><Spinner variant="bars" /></div>}>
                 <ProjectsContent searchParams={searchParams} />
             </Suspense>
             <Footer />

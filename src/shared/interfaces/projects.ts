@@ -1,4 +1,4 @@
-import { IBaseResponse, IListResponse } from ".";
+import { IBaseResponse, IListResponse, ISeoFields } from ".";
 
 export interface Contributor {
     id: number
@@ -19,7 +19,7 @@ export interface Tag {
     description: string
 }
 
-export interface Project {
+export interface Project extends ISeoFields {
     id: string
     title: string
     slug: string

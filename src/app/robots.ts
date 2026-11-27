@@ -1,8 +1,9 @@
 import type { MetadataRoute } from 'next/types';
-import { getOrigin } from '@/shared/seo/origin';
+import { SITE_URL } from '@/shared/seo/site';
 
-export default async function robots(): Promise<MetadataRoute.Robots> {
-    const origin = await getOrigin();
+// Always advertise the production domain, not the request host (which would
+// leak *.pages.dev preview hosts into robots.txt).
+export default function robots(): MetadataRoute.Robots {
     return {
         rules: [
             {
@@ -11,7 +12,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
                 disallow: ['/api/', '/admin/', '/login'],
             },
         ],
-        sitemap: `${origin}/sitemap.xml`,
-        host: origin,
+        sitemap: `${SITE_URL}/sitemap-index.xml`,
+        host: SITE_URL,
     };
 }

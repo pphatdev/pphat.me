@@ -1,4 +1,6 @@
 import Footer from "@/shared/components/layouts/footer";
+import type { Metadata } from "next";
+import { openGraphBase, SITE_DESCRIPTION, SITE_TITLE } from "@/shared/seo/site";
 import HeroSection from "./hero";
 import { SectionSkills } from "./skills";
 import { GotoTop } from "@/shared/components/layouts/goto-top";
@@ -40,3 +42,10 @@ export default async function Home() {
         </div>
     );
 }
+
+// Home uses the layout's default title/description; it only needs its own
+// canonical and og:url (deliberately not set in the layout, see layout.tsx).
+export const metadata: Metadata = {
+    alternates: { canonical: "/" },
+    openGraph: { ...openGraphBase, title: SITE_TITLE, description: SITE_DESCRIPTION, url: "/" },
+};
