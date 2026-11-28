@@ -37,7 +37,7 @@ const NavigationBarInner = ({ className }: { className?: string }) => {
             <NavBody>
                 <NavbarLogo />
                 <NavItems items={navItems} />
-                <div className="flex items-center gap-4 z-50">
+                <div className="flex items-center justify-self-end gap-3 z-50">
                     <MagneticArea>
                         <ThemeToggle className="scale-90" />
                     </MagneticArea>

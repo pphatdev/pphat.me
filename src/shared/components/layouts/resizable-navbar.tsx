@@ -97,7 +97,7 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
                 minWidth: "700px",
             }}
             className={cn(
-                "relative z-60 mx-auto hidden w-full max-w-5xl flex-row items-center justify-between self-start rounded-full bg-transparent px-4 py-2 lg:flex",
+                "relative z-60 mx-auto hidden w-full max-w-5xl grid-cols-[1fr_auto_1fr] items-center gap-4 self-start rounded-full bg-transparent px-4 py-2 lg:grid",
                 visible && "bg-background/30 shadow-card ring-1 ring-foreground/10",
                 className,
             )}
@@ -114,7 +114,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
         <motion.div
             onMouseLeave={() => setHovered(null)}
             className={cn(
-                "absolute inset-0 hidden flex-1 flex-row items-center justify-center space-x-2 text-sm font-medium text-foreground/60 transition duration-200 hover:text-foreground/80  lg:flex lg:space-x-2",
+                "hidden flex-row items-center justify-center gap-1 text-sm font-medium text-foreground/60 transition duration-200 hover:text-foreground/80 lg:flex",
                 className,
             )}
         >
@@ -234,7 +234,7 @@ export const MobileNavToggle = ({
 
 export const NavbarLogo = () => {
     return (
-        <Link href="/" className="shrink-0 items-center flex flex-col z-50" aria-label="Home">
+        <Link href="/" className="shrink-0 justify-self-start items-center flex flex-col z-50" aria-label="Home">
             <Image width={32} height={32} src={'/assets/logo/logo-transparent-dark-mode.png'} alt={"Logo"} className="hidden dark:block" />
             <Image width={32} height={32} src={'/assets/logo/logo-transparent-light-mode.png'} alt={"Logo"} className="dark:hidden" />
             {/* {process.env?.NODE_ENV === "development" && <Badge className="py-0.5 pt-1 h-fit -translate-y-3 bg-background text-[8px] uppercase" variant={"outline"}>Dev Mode</Badge>} */}
