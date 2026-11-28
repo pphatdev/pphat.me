@@ -2,6 +2,7 @@ import "../../../shared/styles/code-block-node.css"
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
 import { GridPattern } from '@/shared/components/background/grid-pattern';
 import { Button } from '@/shared/components/ui/button';
@@ -20,7 +21,8 @@ import { ADMIN_URL } from '@/shared/libs/constants';
 import { slugFromNavigation } from '@/shared/libs/content';
 import { getOrigin } from '@/shared/seo/origin';
 import { SITE_NAME, SITE_OG_IMAGE } from '@/shared/seo/site';
-import { itemKeywords } from '@/shared/seo/content';
+import { isoDate, itemKeywords } from '@/shared/seo/content';
+import { JsonLd, postStructuredData } from '@/shared/seo/structured-data';
 
 interface Params {
     params: Promise<{
@@ -33,12 +35,7 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
     const article = await getArticleDetail(params.slug);
     const data = article?.data;
 
-    if (!data) {
-        return {
-            title: `Article Not Found`,
-            description: 'The requested article could not be found',
-        };
-    }
+    if (!data) notFound();
 
     const origin = await getOrigin();
 
@@ -55,8 +52,8 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
         authors: data.authors?.length
             ? data.authors.map((author) => ({ name: author.name, url: author.url }))
             : data.owner?.name
-              ? [{ name: data.owner.name }]
-              : [{ name: appName, url: origin }],
+                ? [{ name: data.owner.name }]
+                : [{ name: appName, url: origin }],
         // openGraph replaces the layout's object wholesale, so repeat site fields.
         openGraph: {
             title: `${data.title}`,
@@ -65,8 +62,8 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
             url: `/posts/${data.slug}`,
             siteName: SITE_NAME,
             locale: 'en_US',
-            publishedTime: data.createdAt,
-            modifiedTime: data.updatedAt,
+            publishedTime: isoDate(data.createdAt),
+            modifiedTime: isoDate(data.updatedAt),
             authors: data.authors?.map((author) => author.name),
             tags: data.tags?.map((tag) => tag.tag),
             images: data.thumbnail ? [{ url: data.thumbnail.toString() }] : [SITE_OG_IMAGE],
@@ -82,7 +79,8 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
 
 import { safeSegment, upstream } from '@/app/api/lib/client';
 
-const getArticleDetail = async (slug: string): Promise<IArticleDetailResponse | null> => {
+// cache(): generateMetadata, the page and BlogContent share one request per render.
+const getArticleDetail = cache(async (slug: string): Promise<IArticleDetailResponse | null> => {
     const segment = safeSegment(slug);
     if (!segment) return null;
     try {
@@ -90,9 +88,11 @@ const getArticleDetail = async (slug: string): Promise<IArticleDetailResponse | 
             method: 'GET',
         });
 
+        // Only a real "not found" becomes a 404. Other failures throw, so an
+        // API outage serves an error instead of telling crawlers the post is gone.
+        if (response.status === 404) return null;
         if (!response.ok) {
-            console.error(`Failed to fetch article with slug ${slug}:`, response.statusText);
-            return null;
+            throw new Error(`Failed to fetch article ${slug}: HTTP ${response.status}`);
         }
 
         const data = (await response.json()) as IArticleDetailResponse;
@@ -102,14 +102,20 @@ const getArticleDetail = async (slug: string): Promise<IArticleDetailResponse | 
     }
     catch (error) {
         console.error(`Error fetching article with slug ${slug}:`, error);
-        return null;
+        throw error;
     }
-};
+});
 
-import { Suspense } from 'react';
+import { cache, Suspense } from 'react';
 import { Spinner } from '@/shared/components/ui/loading';
 
-export default function BlogDetail(props: Params) {
+export default async function BlogDetail(props: Params) {
+    // Resolve the post before the Suspense shell streams, so a missing post
+    // gets a real 404 status rather than a 200 with noindex. The fetch is
+    // memoized per request, so BlogContent reuses this response.
+    const { slug } = await props.params;
+    if (!(await getArticleDetail(slug))) notFound();
+
     return (
         <Suspense fallback={
             <div className="w-full min-h-screen flex flex-col">
@@ -127,23 +133,7 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
     const resolvedParams = await params;
     const articleRes = await getArticleDetail(resolvedParams.slug);
 
-    if (!articleRes || !articleRes.data) {
-        return (
-            <>
-                <GridPattern width={30} height={30} x={-1} y={-1} className={'mask-[linear-gradient(to_bottom_right,white,transparent,transparent)] '} />
-                <div className='container flex min-h-svh flex-col justify-center items-center mx-auto py-16 text-center'>
-                    <h1 className='text-4xl font-bold mb-4'>Article Not Found</h1>
-                    <p className='text-foreground/50 mb-8'> The article you are looking for does not exist. </p>
-
-                    <Button asChild className='ring'>
-                        <Link href='/posts'>
-                            <ArrowLeftIcon className='w-4 h-4 mr-2' /> Back to Posts
-                        </Link>
-                    </Button>
-                </div>
-            </>
-        );
-    }
+    if (!articleRes || !articleRes.data) notFound();
 
     const data = articleRes.data;
     const prevSlug = slugFromNavigation(articleRes.navigation?.prev);
@@ -152,6 +142,7 @@ async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {
 
     return (
         <>
+            <JsonLd data={postStructuredData(data, itemKeywords(data))} />
             <div className="max-sm:px-3">
                 <div className='absolute inset-y-0 left-0 right-0 pointer-events-none opacity-60' aria-hidden='true'>
                     <GridPattern

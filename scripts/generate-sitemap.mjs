@@ -44,6 +44,10 @@ const ROUTE_META = {
 };
 const DEFAULT_META = { changefreq: 'monthly', priority: 0.5 };
 
+// Pages with nothing to index (sign-in flow). Keep in line with robots.ts.
+const EXCLUDED_ROUTES = ['/login', '/register', '/auth'];
+const isExcluded = (path) => EXCLUDED_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
+
 // Route segments that should exclude a page from the sitemap
 // (dynamic segments are served by API-driven post/project lists below).
 function isDynamicOrGroup(segment) {
@@ -93,25 +97,41 @@ function xmlEscape(value) {
 }
 
 function formatDate(value) {
-    const d = value ? new Date(value) : new Date();
+    // API timestamps like "2026-11-28 03:26:21" carry no zone but are UTC.
+    const normalized = typeof value === 'string' && /^\d{4}-\d{2}-\d{2} \d/.test(value) ? `${value.replace(' ', 'T')}Z` : value;
+    const d = normalized ? new Date(normalized) : new Date();
     return Number.isNaN(d.getTime()) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
 }
 
+// The API returns 10 items per page by default (max 100). Walk every page so
+// the sitemap lists all posts/projects, not just the newest ten.
+const PAGE_SIZE = 100;
+const MAX_PAGES = 50;
+
 async function fetchList(path) {
-    try {
-        const res = await fetch(`${API_BASE}${path}`, {
-            headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-        });
-        if (!res.ok) {
-            console.warn(`  ⚠  ${path} → HTTP ${res.status}`);
-            return [];
+    const sep = path.includes('?') ? '&' : '?';
+    const items = [];
+    for (let page = 1; page <= MAX_PAGES; page++) {
+        const url = `${path}${sep}limit=${PAGE_SIZE}&page=${page}`;
+        try {
+            const res = await fetch(`${API_BASE}${url}`, {
+                headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+            });
+            if (!res.ok) {
+                console.warn(`  ⚠  ${url} → HTTP ${res.status}`);
+                break;
+            }
+            const json = await res.json();
+            const data = Array.isArray(json?.data) ? json.data : [];
+            items.push(...data);
+            const totalPages = Number(json?.pagination?.totalPages) || 1;
+            if (data.length === 0 || page >= totalPages) break;
+        } catch (err) {
+            console.warn(`  ⚠  ${url} → ${err.message}`);
+            break;
         }
-        const json = await res.json();
-        return Array.isArray(json?.data) ? json.data : [];
-    } catch (err) {
-        console.warn(`  ⚠  ${path} → ${err.message}`);
-        return [];
     }
+    return items;
 }
 
 function urlEntry({ path, lastmod, changefreq, priority }) {
@@ -188,7 +208,7 @@ async function main() {
 
     const discovered = discoverStaticRoutes();
     const staticEntries = discovered
-        .filter((path) => !path.startsWith('/api'))
+        .filter((path) => !path.startsWith('/api') && !isExcluded(path))
         .map((path) => {
             const meta = ROUTE_META[path] ?? DEFAULT_META;
             return { path, lastmod: today, ...meta };
