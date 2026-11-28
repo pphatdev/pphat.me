@@ -35,9 +35,9 @@ export function AccountMenu({ className }: { className?: string }) {
         return (
             <Link
                 href={`/login${next}`}
-                className={cn('pointer-events-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-foreground/5', className)}
+                className={cn('pointer-events-auto whitespace-nowrap inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-foreground/5', className)}
             >
-                <LogIn className="size-4" /> Sign in
+                Sign in
             </Link>
         );
     }
