@@ -53,6 +53,12 @@ const nextConfig: NextConfig = {
                 hostname: 'avatars.githubusercontent.com',
             },
             {
+                // Post/project images hosted in the pphatdev/assets repo.
+                protocol: 'https',
+                hostname: 'raw.githubusercontent.com',
+                pathname: '/pphatdev/**',
+            },
+            {
                 protocol: 'https',
                 hostname: 'pphat.me',
             },
