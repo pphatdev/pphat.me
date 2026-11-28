@@ -1,4 +1,4 @@
-import { SOCIAL_PROFILES } from './site';
+import { SITE_NAME, SOCIAL_PROFILES } from './site';
 
 /**
  * Extra <head> tags that Next's Metadata API doesn't cover: icons, fonts and
@@ -18,6 +18,7 @@ export default function DefaultHead() {
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600;700&display=swap" />
 
             <link rel="alternate" type="text/markdown" title="llms.txt" href="/llms.txt" />
+            <link rel="alternate" type="application/rss+xml" title={`${SITE_NAME} Blog`} href="/feed.xml" />
 
             {SOCIAL_PROFILES.map((href) => (
                 <link key={href} rel="me" href={href} />
