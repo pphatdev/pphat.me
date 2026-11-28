@@ -17,6 +17,7 @@ import Footer from '@/shared/components/layouts/footer';
 import { IArticleDetailResponse } from '@/shared/interfaces/articles';
 import { appName } from '@/shared/data';
 import { ADMIN_URL } from '@/shared/libs/constants';
+import { slugFromNavigation } from '@/shared/libs/content';
 import { getOrigin } from '@/shared/seo/origin';
 import { SITE_NAME, SITE_OG_IMAGE } from '@/shared/seo/site';
 import { itemKeywords } from '@/shared/seo/content';
@@ -120,17 +121,6 @@ export default function BlogDetail(props: Params) {
             <BlogContent params={props.params} />
         </Suspense>
     );
-}
-
-/** Neighbour links arrive as absolute URLs (`…/articles/<slug>`); keep only the slug. */
-function slugFromNavigation(value: string | null | undefined): string | null {
-    if (!value) return null;
-    try {
-        const last = new URL(value).pathname.split('/').filter(Boolean).pop();
-        return last ? decodeURIComponent(last) : null;
-    } catch {
-        return null;
-    }
 }
 
 async function BlogContent({ params }: { params: Promise<{ slug: string }> }) {

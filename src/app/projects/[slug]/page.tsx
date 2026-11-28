@@ -8,6 +8,7 @@ import { safeSegment, upstream } from '@/app/api/lib/client';
 import { authorAvatar, authorHref } from '@/shared/libs/author';
 import { SITE_NAME, SITE_OG_IMAGE } from '@/shared/seo/site';
 import { itemKeywords } from '@/shared/seo/content';
+import { slugFromNavigation } from '@/shared/libs/content';
 
 import { GridPattern } from '@/shared/components/background/grid-pattern';
 import { Button } from '@/shared/components/ui/button';
@@ -158,6 +159,8 @@ async function ProjectContent({ params }: { params: Promise<{ slug: string }> })
     }
 
     const data = project.data;
+    const prevSlug = slugFromNavigation(project.navigation?.prev);
+    const nextSlug = slugFromNavigation(project.navigation?.next);
 
     return (
         <article className='max-w-5xl sm:px-4 relative mx-auto max-xs:pt-0 sm:mt-16 max-sm:pb-0 py-8'>
@@ -250,29 +253,24 @@ async function ProjectContent({ params }: { params: Promise<{ slug: string }> })
                     <MarkdownRenderer content={data.details.content} />
                 </div>
 
-                <div className='flex flex-col gap-3 mt-10'>
-                    <div className='flex items-center mx-auto justify-between w-full gap-3'>
-                        {project.navigation.prev ? (
-                            <Button asChild variant={'outline'} className="max-sm:px-2">
-                                <Link href={`${project.navigation.prev}`}>
-                                    <ArrowLeftIcon className='w-4 h-4 shrink-0' />
-                                    <span className='sm:hidden'>Prev</span>
-                                    <span className='max-sm:hidden'>Previous</span>
+                {(prevSlug || nextSlug) && (
+                    <nav className='mt-10 flex items-center justify-between gap-3' aria-label='More projects'>
+                        {prevSlug ? (
+                            <Button asChild variant='outline' className='max-sm:px-2'>
+                                <Link href={`/projects/${encodeURIComponent(prevSlug)}`}>
+                                    <ArrowLeftIcon className='size-4 shrink-0' /> Previous
                                 </Link>
                             </Button>
-                        ) : (<div />)}
-
-                        {project.navigation.next ? (
-                            <Button asChild variant={'outline'} className="max-sm:px-2">
-                                <Link href={`${project.navigation.next}`}>
-                                    <ArrowRightIcon className='w-4 h-4 shrink-0' />
-                                    <span className='sm:hidden'>Next</span>
-                                    <span className='max-sm:hidden'>Next</span>
+                        ) : (<span />)}
+                        {nextSlug ? (
+                            <Button asChild variant='outline' className='max-sm:px-2'>
+                                <Link href={`/projects/${encodeURIComponent(nextSlug)}`}>
+                                    Next <ArrowRightIcon className='size-4 shrink-0' />
                                 </Link>
                             </Button>
-                        ) : (<div />)}
-                    </div>
-                </div>
+                        ) : (<span />)}
+                    </nav>
+                )}
             </div>
 
         </article>

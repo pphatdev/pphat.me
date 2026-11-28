@@ -71,3 +71,18 @@ export async function getAllProjects(): Promise<ContentItem[]> {
         return [];
     }
 }
+
+/**
+ * Neighbour links from the API arrive as absolute URLs on the API origin
+ * (`https://api…/projects/<slug>`); keep only the slug so the site can link
+ * to its own route.
+ */
+export function slugFromNavigation(value: string | null | undefined): string | null {
+    if (!value) return null;
+    try {
+        const last = new URL(value).pathname.split('/').filter(Boolean).pop();
+        return last ? decodeURIComponent(last) : null;
+    } catch {
+        return null;
+    }
+}

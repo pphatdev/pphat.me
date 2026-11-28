@@ -45,5 +45,5 @@ export interface IDetails {
 export interface IProjectListResponse extends IListResponse<Project> { }
 export interface IProjectDetailResponse extends IBaseResponse<
     Project & { details: IDetails },
-    { navigation: { next?: string; prev?: string } }
+    { navigation: { next?: string | null; prev?: string | null } }
 > { }
